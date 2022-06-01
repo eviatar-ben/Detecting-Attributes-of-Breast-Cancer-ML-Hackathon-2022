@@ -10,4 +10,20 @@ Hisptopathological degree - Ordered categorical - Mean fill?
 IVI - numerical - or binary
 KI67 - numerica;
 Lymphatic-penetration - numerical
+M-metatstates mark - ordered categorical
+N - ""
+T - ""
+Margin type - Categorical
+Nodes exam - numercial
+positive nodes - numerical
+Side - 2 categories + nan category?
+Stage - ordered categorical
+surgeries??
+Surgery sum - numerical
+Tumor depth - numerical
+Tumor width - numerical
+er - Yuval????
+pr - Yuval????
+surgery before or after-Activity date - categorical
+
 
