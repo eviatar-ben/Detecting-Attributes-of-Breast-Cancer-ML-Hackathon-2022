@@ -194,7 +194,7 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
 def multi():
     import MultiLabelClassifier
     # X_train = np.array(pd.DataFrame.to_numpy(X_train), dtype=float)
-    return MultiLabelClassifier.get_models(X_train, y_train)
+    return MultiLabelClassifier.get_models()
 
 
 def part_1(args):
@@ -283,7 +283,7 @@ def part_1(args):
         splits = int(args["--cv"])
 
         models = [RandomForestClassifier()]
-        models += [i for i in multi(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)]
+        models += [i for i in multi()]
         for model in models:
             scores = cross_validate(model, features, labels, cv=KFold(n_splits=splits, shuffle=True),
                                     scoring=['f1_micro', 'f1_macro'],
@@ -314,10 +314,7 @@ def part_2(args):
 
     df, num_imp, ord_imp, encoder = parse_features(df)
 
-<<<<<<< HEAD
-=======
     # Save trained model:  TODO: load trained model - requires saving the dtypes?
->>>>>>> 9e91d92ec30d1ef41cf24059322a7a7991d3e5e9
     if args['--parsed'] is not None:
         df['אבחנה-Tumor size'] = labels['אבחנה-Tumor size']
         parsed_fn = Path(args['--parsed'])
