@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+
+
 def present_unique_values(df, col_name):
     print(df[col_name].unique())
     sums = 0
@@ -6,4 +10,8 @@ def present_unique_values(df, col_name):
         sums += num
         print(f"value: {val} has {num}")
 
-    print(f"sums ={sums}")
+    num = len(df[df[col_name].isnull()].index.tolist())
+    sums += num
+    print(f"value: {np.nan} has {num}")
+
+    print(f"values number that are not numpy.nan ={sums}")
