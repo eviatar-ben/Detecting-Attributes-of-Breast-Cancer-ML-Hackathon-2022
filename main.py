@@ -5,6 +5,7 @@ Options:
   --help                           Show this message and exit
 """
 from pandas import CategoricalDtype     # TODO: pd.CategoricalDtype instead
+from sklearn.cluster import SpectralClustering
 from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
 from docopt import docopt
@@ -122,23 +123,23 @@ def handle_ordered_categories(df: pd.DataFrame) -> Iterable[SimpleImputer]:
         categories=['M0', 'M1'],  # TODO: MX? NYE?
         ordered=True
     )
-
-    df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].mask(
-        ((df["אבחנה-M -metastases mark (TNM)"] == 'M1a') |
-         (df["אבחנה-M -metastases mark (TNM)"] == 'M1b')), 'M1'
-    ).astype(m_mark_cat)
-
-    df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
-    m_mark_imputer = SimpleImputer(strategy="most_frequent")
-    df["אבחנה-M -metastases mark (TNM)"] = m_mark_imputer.fit_transform(
-        df[["אבחנה-M -metastases mark (TNM)"]]
-    )
-    df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
+    #
+    # df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].mask(
+    #     ((df["אבחנה-M -metastases mark (TNM)"] == 'M1a') |
+    #      (df["אבחנה-M -metastases mark (TNM)"] == 'M1b')), 'M1'
+    # ).astype(m_mark_cat)
+    #
+    # df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
+    # m_mark_imputer = SimpleImputer(strategy="most_frequent")
+    # df["אבחנה-M -metastases mark (TNM)"] = m_mark_imputer.fit_transform(
+    #     df[["אבחנה-M -metastases mark (TNM)"]]
+    # )
+    # df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
 
     cat_columns = df.select_dtypes(['category']).columns
     df[cat_columns] = df[cat_columns].apply(lambda x: x.cat.codes)
 
-    return [base_stage_imputer, hist_deg_imputer, hist_deg_imputer, m_mark_imputer]
+    return [base_stage_imputer, hist_deg_imputer, hist_deg_imputer]
 
 
 def handle_side(df: pd.DataFrame):
@@ -168,13 +169,14 @@ if __name__ == '__main__':
                        'אבחנה-Her2',
                        'אבחנה-Ivi -Lymphovascular invasion',
                        'אבחנה-KI67 protein',        # TODO
-                       'אבחנה-N -lymph nodes mark (TNM)',  # TODO
+                       'אבחנה-N -lymph nodes mark (TNM)',
                        'אבחנה-Side',
-                       'אבחנה-Stage',    # TODO
+                       'אבחנה-Stage',
                        'אבחנה-Surgery name1',   # TODO
                        'אבחנה-Surgery name2',   # TODO
                        'אבחנה-Surgery name3',  # TODO
-                       'אבחנה-T -Tumor mark (TNM)',  # TODO
+                       'אבחנה-T -Tumor mark (TNM)',
+                       "אבחנה-M -metastases mark (TNM)",
                        'אבחנה-Tumor depth',     # TODO
                        'אבחנה-Tumor width',     # TODO
                        'אבחנה-er',
@@ -197,9 +199,9 @@ if __name__ == '__main__':
 
         a = result.describe()
 
+        # PCA::::
         pca = PCA(n_components=2)
-        pca.fit(result)
-        tran_pc = pca.transform(result)
-        fig = px.scatter(x=tran_pc[:,0], y=tran_pc[:,1], color=result['אבחנה-Basic stage'])
+        tran_pca = pca.fit_transform(df.drop(["אבחנה-Location of distal metastases"], axis=1))
+        fig = px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=(transformed_y_df.any(axis=1)))
         fig.show()
 
