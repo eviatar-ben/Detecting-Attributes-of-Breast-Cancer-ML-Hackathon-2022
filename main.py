@@ -1,9 +1,12 @@
 """ Usage:
-    <file-name> (part1 | part2 | part3) --train-x=TRAIN_X --train-y=TRAIN_Y [--test-x=TEST_X]
-    <file-name> (part1 | part2 | part3) --train-x=TRAIN_X --train-y=TRAIN_Y [--test-x=TEST_X] [baseline --test-y=TEST_Y --out=PRED]
+    <file-name> part1 --train-x=TRAIN_X --train-y=TRAIN_Y --parsed=OUT_FILE [options]
+    <file-name> part1 --cv=K (--train-x=TRAIN_X --train-y=TRAIN_Y | --ready=IN_FILE) [options]
+    <file-name> part1 baseline --train-x=TRAIN_X --train-y=TRAIN_Y --test-x=TEST_X --test-y=TEST_Y --out=PRED [--parsed=OUT_FILE] [options]
+    <file-name> (part2 | part3) --train-x=TRAIN_X --train-y=TRAIN_Y --test-x=TEST_X --test-y=TEST_Y --out=PRED [--parsed=OUT_FILE] [options]
 
 Options:
   --help                           Show this message and exit
+  --seed=SEED                       [default: 0]
 """
 from pandas import CategoricalDtype     # TODO: pd.CategoricalDtype instead
 from sklearn.cluster import SpectralClustering
@@ -17,6 +20,7 @@ import pandas as pd
 from typing import Tuple, Iterable
 import numpy as np
 from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.model_selection import KFold, cross_validate
 from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
 from sklearn.tree import DecisionTreeClassifier
 
@@ -176,8 +180,6 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     handle_side(df)
     drop_cols(df, ['User Name',
                    'אבחנה-Her2',
-                   # 'אבחנה-Ivi -Lymphovascular invasion',
-                   # 'אבחנה-KI67 protein',  # TODO
                    'אבחנה-N -lymph nodes mark (TNM)',
                    'אבחנה-Side',
                    'אבחנה-Stage',
@@ -201,16 +203,19 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    ])
     return df, num_imp, ord_imp, encoder
 
-# part1 --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_base_0.csv --test-y=splited_datasets/labels_test_base_0.csv --out="baseline_pred.csv"
+# part1 baseline --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_base_0.csv --test-y=splited_datasets/labels_test_base_0.csv --out="baseline_pred.csv" --seed=0
+# part1 --cv=5 --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv
 # python3 evaluate_part_0.py --gold=./splited_datasets/labels_test_base_0.csv --pred=./baseline_pred.csv
 if __name__ == '__main__':
-    np.random.seed(0)
     args = docopt(__doc__)
     print(args)
+    seed = 0
+    if args['--seed'] is not None:
+        seed = int(args['--seed'])
+    np.random.seed(seed)
     if args["part1"]:
         train_X_fn = Path(args["--train-x"])
         train_y_fn = Path(args["--train-y"])
-
         df = load_data(train_X_fn, train_y_fn)
 
         df, num_imp, ord_imp, encoder = parse_features(df)
@@ -222,8 +227,11 @@ if __name__ == '__main__':
             ["אבחנה-Location of distal metastases"], axis=1)
 
         a = result.describe()
+        if args['--parsed'] is not None:
+            parsed_fn = Path(args['--parsed'])
+            result.to_csv(parsed_fn, index=False)
 
-        if args['--test-y'] is not None:
+        if args['baseline']:
             baseline = DecisionTreeClassifier(max_depth=2)
             baseline.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)
 
@@ -243,6 +251,23 @@ if __name__ == '__main__':
             out_path = Path(args["--out"])
             combined = pd.DataFrame({"אבחנה-Location of distal metastases": mlb.inverse_transform(pred)})
             combined.to_csv(path_or_buf=out_path, index=False)
+
+        if args["--cv"] is not None:
+            features = df.drop(["אבחנה-Location of distal metastases"], axis=1)
+            labels = transformed_y_df
+            splits = int(args["--cv"])
+            model = RandomForestClassifier()
+            scores = cross_validate(model, features, labels, cv=splits,
+                                    scoring=['f1_micro', 'f1_macro'],
+                                    return_train_score=True,
+                                    return_estimator=True)
+            print("## f1_macro ##")
+            print(np.mean(scores["test_f1_macro"]))
+            print(scores["test_f1_macro"])
+            print("## f1_micro ##")
+            print(np.mean(scores["test_f1_micro"]))
+            print(scores["test_f1_micro"])
+
 
 
 
