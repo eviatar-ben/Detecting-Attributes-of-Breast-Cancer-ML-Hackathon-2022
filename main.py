@@ -4,12 +4,16 @@
 Options:
   --help                           Show this message and exit
 """
+from pandas import CategoricalDtype
 from sklearn.impute import SimpleImputer
 from docopt import docopt
 from pathlib import Path
 import logging
 import pandas as pd
 from typing import Tuple, Iterable
+import numpy as np
+from sklearn.preprocessing import OrdinalEncoder
+
 
 def load_data(train_X_fn: Path, train_y_fn: Path):
     features = pd.read_csv(train_X_fn, parse_dates=[
@@ -26,17 +30,69 @@ def load_data(train_X_fn: Path, train_y_fn: Path):
 
 def handle_numerical(df: pd.DataFrame) -> Iterable[SimpleImputer]:
     numerical_categories = [
-        "אבחנה-Tumor depth",
-        "אבחנה-Tumor width",
-        "אבחנה-Surgery sum",
-        "אבחנה-Positive nodes",
-        "אבחנה-Nodes exam",
+        "אבחנה-Tumor depth",  # TODO: Drop?
+        "אבחנה-Tumor width",  # TODO: Drop?
+        "אבחנה-Surgery sum",  # TODO: fill using dates?
+        "אבחנה-Positive nodes",  # todo:
+        "אבחנה-Nodes exam",  # TODO:
         "אבחנה-Age",
     ]
     median_imputer = SimpleImputer(strategy="median")
     df["אבחנה-Age"] = median_imputer.fit_transform(df[["אבחנה-Age"]])
     # df["אבחנה-Age"] = median_imputer.transform(df["אבחנה-Age"])
     return [median_imputer]
+
+def handle_ordered_categories(df: pd.DataFrame) ->  Iterable[SimpleImputer]:
+    ordered_categories = [
+       "אבחנה-Basic stage",  # TODO: switch to unordered - ignore Null?
+       "אבחנה-Histopatological degree",  # TODO: Gx and null in diff columns?
+       "אבחנה-Lymphatic penetration"  # TODO: LI vs L1? Null?
+    ]
+    base_stage_cat = CategoricalDtype(
+        categories=['c - Clinical', 'p - Pathological', 'r - Reccurent'],
+        ordered=True
+    )
+    df["אבחנה-Basic stage"] = df["אבחנה-Basic stage"].astype(base_stage_cat)
+    base_stage_imputer = SimpleImputer(strategy="most_frequent")
+    df["אבחנה-Basic stage"] = base_stage_imputer.fit_transform(
+        df[["אבחנה-Basic stage"]]
+    )
+    df["אבחנה-Basic stage"] = df["אבחנה-Basic stage"].astype(base_stage_cat)
+
+    hist_deg_cat = CategoricalDtype(
+        categories=[
+            'G1 - Well Differentiated',
+            'G2 - Modereately well differentiated',
+            'G3 - Poorly differentiated',
+            'G4 - Undifferentiated'],
+        ordered=True
+    )
+    df["אבחנה-Histopatological degree"] = df["אבחנה-Histopatological degree"].astype(hist_deg_cat)
+    hist_deg_imputer = SimpleImputer(strategy="most_frequent")
+    df["אבחנה-Histopatological degree"] = hist_deg_imputer.fit_transform(
+        df[["אבחנה-Histopatological degree"]]
+    )
+    df["אבחנה-Histopatological degree"] = df["אבחנה-Histopatological degree"].astype(hist_deg_cat)
+
+    lym_pen_cat = CategoricalDtype(
+        categories=[
+            'L0 - No Evidence of invasion',
+            'LI - Evidence of invasion',
+            'L1 - Evidence of invasion of superficial Lym.',
+            'L2 - Evidence of invasion of depp Lym.'
+            ], ordered=True
+    )
+    df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
+    hist_deg_imputer = SimpleImputer(
+        strategy="constant",
+        fill_value='L0 - No Evidence of invasion'  # TODO: fill based on other columns
+    )
+    # df["אבחנה-Lymphatic penetration"] = hist_deg_imputer.fit_transform(
+    #     df[["אבחנה-Lymphatic penetration"]]
+    # )
+    # df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
+
+    return [base_stage_imputer, hist_deg_imputer, hist_deg_imputer]
 
 
 if __name__ == '__main__':
@@ -49,6 +105,7 @@ if __name__ == '__main__':
 
         df = load_data(train_X_fn, train_y_fn)
         handle_numerical(df)
+        handle_ordered_categories(df)
         a = df.describe()
         # head = df.head(1000)
         # a = head.describe()
