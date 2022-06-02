@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-
 import utilities
 
 
@@ -20,9 +19,7 @@ def handle_categorical_cols(df, encoder=True):
         encoder.fit(df[categorical_cols])
     transformed = encoder.transform(df[categorical_cols])
     transformed_df = pd.DataFrame(transformed, columns=encoder.get_feature_names_out(categorical_cols))
-    transformed_df.reset_index(inplace=True)
     result = pd.concat([df, transformed_df], axis=1)
-    print(np.count_nonzero(result["אבחנה-Age"].isna()))
     return result.drop(categorical_cols, axis=1)
 
 

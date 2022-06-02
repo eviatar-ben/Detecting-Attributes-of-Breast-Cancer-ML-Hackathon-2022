@@ -12,7 +12,7 @@ import logging
 import pandas as pd
 from typing import Tuple, Iterable
 import numpy as np
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
 from preprocessor import *
 from explore_data import *
 
@@ -24,8 +24,11 @@ def load_data(train_X_fn: Path, train_y_fn: Path):
         "אבחנה-Surgery date3",
         "surgery before or after-Activity date"
     ], infer_datetime_format=True, dayfirst=True)
+
     labels = pd.read_csv(train_y_fn)
-    full_data = pd.concat([features, labels])
+    labels["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"].apply(eval)
+    full_data = features
+    full_data["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"]
     full_data = full_data.loc[:, ~full_data.columns.str.contains('^Unnamed')]
     full_data.reset_index(inplace=True, drop=True)
     return full_data
@@ -135,6 +138,7 @@ def handle_side(df: pd.DataFrame):
     df["Side_right"] = (df["אבחנה-Side"] == 'ימין') | (df["אבחנה-Side"] == 'דו צדדי')
     df["Side_left"] = (df["אבחנה-Side"] == 'שמאל') | (df["אבחנה-Side"] == 'דו צדדי')
 
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     # print(args)
@@ -146,7 +150,7 @@ if __name__ == '__main__':
         df = load_data(train_X_fn, train_y_fn)
 
         handle_numerical(df)
-        df = handle_dates_features(df)
+        # df = handle_dates_features(df)
         df = handle_categorical_cols(df)
         preprocessing(df)
 
@@ -164,11 +168,25 @@ if __name__ == '__main__':
                        'אבחנה-Surgery name2',   # TODO
                        'אבחנה-Surgery name3',  # TODO
                        'אבחנה-T -Tumor mark (TNM)',  # TODO
+                       'אבחנה-Tumor depth',     # TODO
+                       'אבחנה-Tumor width',     # TODO
+                       'אבחנה-er',
+                       'אבחנה-pr',
+                       'id-hushed_internalpatientid',
+                       'surgery before or after-Actual activity',   # TODO
+                       # TODO: retry dates with manual parse for Unknowns?
+                       'אבחנה-Surgery date1',
+                       'אבחנה-Surgery date2',
+                       'אבחנה-Surgery date3',
+                       'surgery before or after-Activity date',
+                       'אבחנה-Diagnosis date',
                        ])
 
+        mlb = MultiLabelBinarizer()
+        transformed_y = mlb.fit_transform(df["אבחנה-Location of distal metastases"])
+        transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
+        result = pd.concat([df, transformed_y_df], axis=1).drop(
+            ["אבחנה-Location of distal metastases"], axis=1)
+
         a = df.describe()
-        # head = df.head(1000)
-        # a = head.describe()
-        # for colname, colval in df.iteritems():
-        #     print(colname)
-        #     print(pd.unique(head[colname]))
+
