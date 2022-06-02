@@ -59,8 +59,8 @@ def get_models():
 
     clf_adaptive_knn = MLkNN()
     # -------------------------------------------assemble methods -----------------------------------------------
-    # return clf_RF_chain_model, clf_KNN_chain_model,  clf_DT_chain_model, \
-    #        clf_RF_PowerSet_model, clf_KNN_PowerSet_model,  clf_DT_PowerSet_model,\
-    #        clf_RF_binary_model , clf_KNN_binary_model,  clf_DT_binary_model
+    return clf_RF_chain_model, clf_KNN_chain_model,  clf_DT_chain_model, \
+           clf_RF_PowerSet_model, clf_KNN_PowerSet_model,  clf_DT_PowerSet_model,\
+           clf_RF_binary_model , clf_KNN_binary_model,  clf_DT_binary_model, clf_adaptive_knn
 
-    return clf_DT_PowerSet_model
+    # return clf_DT_PowerSet_model

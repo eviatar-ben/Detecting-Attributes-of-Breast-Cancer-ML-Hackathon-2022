@@ -267,6 +267,11 @@ def part_1(args):
 
         df, num_imp, ord_imp, encoder = parse_features(df, num_imp, ord_imp,
                                                        encoder)
+
+        features = df.drop(["אבחנה-Location of distal metastases"],
+                           axis=1).drop_duplicates()
+        df = df.loc[features.index]
+
         pred = model.predict(
             df.drop(["אבחנה-Location of distal metastases"], axis=1))
 
@@ -290,6 +295,7 @@ def part_1(args):
         splits = int(args["--cv"])
 
         models = [LabelPowerset(DecisionTreeClassifier())]
+        # models += [i for i in multi()]
         for model in models:
             scores = cross_validate(model, features, labels, cv=splits,  # KFold(n_splits=splits, shuffle=True)
                                     scoring=['f1_micro', 'f1_macro'],
@@ -426,7 +432,8 @@ def part_3(args):
 # part1 baseline --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_base_0.csv --test-y=splited_datasets/labels_test_base_0.csv --out="baseline_pred.csv" --parsed=./parsed_base_0.csv --seed=0
 # part1 --cv=5 --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv
 # python3 evaluate_part_0.py --gold=./splited_datasets/labels_test_base_0.csv --pred=./baseline_pred.csv
-#part1 --cv=8 --train-x=train.feats.csv --train-y=train.labels.0.csv
+# part1 --cv=8 --train-x=train.feats.csv --train-y=train.labels.0.csv
+# part1 test --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_0.csv --test-y=splited_datasets/labels_test_0.csv --out=./val_pred.csv
 if __name__ == '__main__':
     args = docopt(__doc__)
     print(args)
