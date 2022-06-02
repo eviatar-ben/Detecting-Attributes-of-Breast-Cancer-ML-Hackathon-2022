@@ -23,10 +23,12 @@ import pandas as pd
 from typing import Tuple, Iterable
 import numpy as np
 from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
-from sklearn.model_selection import KFold, cross_validate
+from sklearn.model_selection import KFold, cross_validate, GridSearchCV
 from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
 from sklearn.tree import DecisionTreeClassifier
+from skmultilearn.problem_transform import LabelPowerset
 
+from MultiLabelClassifier import build_model
 from preprocessor import *
 from explore_data import *
 import plotly.graph_objects as go
@@ -281,21 +283,41 @@ def part_1(args):
         features = df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float)
         labels = transformed_y_df
         splits = int(args["--cv"])
+        parameters = [
+            # {
+            #     'classifier': [RandomForestClassifier()],
+            #     'classifier__n_estimators': [10, 20, 50, 100],
+            #     'classifier__ccp_alpha': [0, 0.00001, 0.0001, 0.001, 0.01, 0.1,
+            #                               1, 2],
+            # },
+            {
+                'classifier': [DecisionTreeClassifier()],
+                'classifier__ccp_alpha': [0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 2],
+            },
+        ]
 
-        models = [RandomForestClassifier()]
-        models += [i for i in multi()]
-        for model in models:
-            scores = cross_validate(model, features, labels, cv=KFold(n_splits=splits, shuffle=True),
-                                    scoring=['f1_micro', 'f1_macro'],
-                                    return_train_score=True,
-                                    return_estimator=True)
-            print(model)
-            print("## f1_macro ##")
-            print(np.mean(scores["test_f1_macro"]))
-            print(scores["test_f1_macro"])
-            print("## f1_micro ##")
-            print(np.mean(scores["test_f1_micro"]))
-            print(scores["test_f1_micro"])
+        # models = [build_model(DecisionTreeClassifier(), LabelPowerset)]
+        clf = GridSearchCV(LabelPowerset(),
+                           parameters,
+                           cv=KFold(n_splits=splits, shuffle=True),
+                           scoring=['f1_micro', 'f1_macro'],
+                           refit='f1_macro')
+        clf.fit(features, labels)
+        print(clf.cv_results_)
+        # models = [RandomForestClassifier()]
+        # models += [i for i in multi()]
+        # for model in models:
+        #     scores = cross_validate(model, features, labels, cv=splits,  # KFold(n_splits=splits, shuffle=True)
+        #                             scoring=['f1_micro', 'f1_macro'],
+        #                             return_train_score=True,
+        #                             return_estimator=True)
+        #     print(model)
+        #     print("## f1_macro ##")
+        #     print(np.mean(scores["test_f1_macro"]))
+        #     print(scores["test_f1_macro"])
+        #     print("## f1_micro ##")
+        #     print(np.mean(scores["test_f1_micro"]))
+        #     print(scores["test_f1_micro"])
 
 
 def part_2(args):
