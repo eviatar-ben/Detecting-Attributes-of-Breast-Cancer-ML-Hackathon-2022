@@ -15,6 +15,7 @@ import numpy as np
 from sklearn.preprocessing import OrdinalEncoder
 
 
+
 def load_data(train_X_fn: Path, train_y_fn: Path):
     features = pd.read_csv(train_X_fn, parse_dates=[
         "אבחנה-Diagnosis date",
@@ -131,5 +132,3 @@ if __name__ == '__main__':
         # for colname, colval in df.iteritems():
         #     print(colname)
         #     print(pd.unique(head[colname]))
-
-
