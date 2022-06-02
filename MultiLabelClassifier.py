@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 # Feature engineering
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Multi Label Pkgs
+# Multi Label Packgs
 from skmultilearn.problem_transform import BinaryRelevance
 from skmultilearn.problem_transform import ClassifierChain
 from skmultilearn.problem_transform import LabelPowerset

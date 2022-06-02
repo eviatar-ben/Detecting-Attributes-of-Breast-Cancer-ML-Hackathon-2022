@@ -60,7 +60,7 @@ def handle_dates_features(df):
 
 
 def handle_ivi(df):
-    # utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
+    utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
     positive_val = ['yes', '+', 'extensive', 'pos', 'MICROPAPILLARY VARIANT', '(+)']
     negative_val = ['not', 'none', 'neg', 'no', '-', '(-)', 'NO', 'No']
 
@@ -83,7 +83,10 @@ def handle_ivi(df):
 
 def handle_ki67(df):
     def get_low():
-        words = ['Score 1', 'Score1-2', 'Very Low <3%', 'low-int']
+        words = ['Score 1', 'Score1-2', 'Very Low <3%', 'low-int', 'Low', 'LOW', 'low'
+                 , 'Very Low', 'score 1-2', 'score 1', 'score 2', 'Score 1-2','score1-2', 'score1-2',
+                 'score1', 'score2',
+                 'Score1-2', 'no', 'No', 'NO', 'negative', 'Negative', 'score 1']
         result = []
         for val in unique_vals:
             if type(val) is str:
@@ -91,11 +94,16 @@ def handle_ki67(df):
                 for i in range(1, 20):
                     if str(i) in val:
                         result.append(val)
+
+                for word in words:
+                    if word in val:
+                        result.append(val)
         unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
     def get_medium():
-        words = ['score1-2', 'score 2', 'Score 2', 'Score II']
+        words = ['score1-2', 'score 2', 'Score 2', 'Score II', 'intermediate', 'intermediate',  'Intermediate'
+                 ,'score II', 'score 3', 'Score 2-3', 'Score 3', 'Score2-3', 'Score3', 'score3','Score I-2','Score 2' ]
         result = []
         for val in unique_vals:
             if type(val) is str:
@@ -103,10 +111,14 @@ def handle_ki67(df):
                 for i in range(20, 50):
                     if str(i) in val:
                         result.append(val)
+                for word in words:
+                    if word in val:
+                        result.append(val)
         unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
     def get_medium_high():
+        words = ['score4']
         result = []
         for val in unique_vals:
             if type(val) is str:
@@ -114,21 +126,28 @@ def handle_ki67(df):
                 for i in range(50, 70):
                     if str(i) in val:
                         result.append(val)
+                for word in words:
+                    if word in val:
+                        result.append(val)
         unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
     def get_high():
-        words = ['score 3-4', 'score 3', 'High', 'Score 4', 'high', 'HIGH']
+        words = ['score 3-4', 'score 3', 'High', 'Score 4', 'high', 'HIGH','High', 'score IV',
+                 'Score 6', ]
         result = []
         for val in unique_vals:
             if type(val) is str:
                 for i in range(70, 100):
                     if str(i) in val:
                         result.append(val)
+                for word in words:
+                    if word in val:
+                        result.append(val)
             unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
-    # utilities.present_unique_values(df, 'אבחנה-KI67 protein')
+    utilities.present_unique_values(df, 'אבחנה-KI67 protein')
     unique_vals = df['אבחנה-KI67 protein'].unique()
     high, unique_vals = get_high()
     medium_high, unique_vals = get_medium_high()
@@ -173,7 +192,7 @@ def handle_ki67(df):
 
 
 def main():
-    df = pd.read_csv(r'/train.feats.csv', parse_dates=[
+    df = pd.read_csv(r'train.feats.csv', parse_dates=[
         "אבחנה-Diagnosis date",
         "אבחנה-Surgery date1",
         "אבחנה-Surgery date2",
@@ -183,8 +202,8 @@ def main():
     # drop_cols(df, ['User Name'])
     # df = handle_dates_features(df)
     # df = handle_categorical_cols(df)
-    # df = handle_ivi(df)
-    df = handle_ki67(df)
+    df = handle_ivi(df)
+    # df = handle_ki67(df)
 
 
 if __name__ == '__main__':
