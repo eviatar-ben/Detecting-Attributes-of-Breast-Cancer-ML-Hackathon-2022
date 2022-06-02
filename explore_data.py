@@ -1,4 +1,3 @@
-import math
 import pandas as pd
 import re
 import numpy as np
@@ -24,12 +23,12 @@ def preprocessing(features: pd.DataFrame):
 
 
 r_num = "\d+\.*\d*"
-r_neg = "[Hnm,][erf][gfc]|[as][kj][ghj][ka]h|^[-=_]|^n[od]|\(-\)|שלילי"
+r_neg = "[Hnm,][erf][gfc]|[as][kj][ghj][ka]h|^[-=_]|^n[od]|non|\(-\)|שלילי|low"
 r_strong = "strong|חזק"
 r_weak = "weak|חלש"
 r_percent = "%"
 r_pos = "jhuch|חיובי|po|\+|strong|weak|חזק|חלש"
-r_mid = "equi|\?|inde|inter|בינוני"
+r_mid = "equi|\?|inde|inter|בינוני|border"
 r_zero = "[0_o\)]"
 
 
@@ -41,7 +40,6 @@ def processing_TNM(string, char):
         return int(match[0][1])
     elif string == "MF" or string == "Tis":
         return 1
-
     return -10
 
 
@@ -95,8 +93,11 @@ def process_nums(string):
             else:
                 return 4
 
-def processing_her2(string):  # todo: change!
+
+def processing_her2(string):
     if type(string) == str:
+        if string.lower() == "amplified":
+            return 3
         nums = []
         for num in re.findall(r_num, string, re.IGNORECASE):
             num = float(num)
@@ -134,4 +135,4 @@ def processing_her2(string):  # todo: change!
 
 
 if __name__ == '__main__':
-    preprocessing(pd.read_csv("splited_datasets/features_train_base_0.csv"))
+    preprocessing(pd.read_csv("train.feats.csv"))
