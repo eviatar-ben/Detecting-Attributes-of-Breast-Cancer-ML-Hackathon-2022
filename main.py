@@ -5,25 +5,18 @@
 Options:
   --help                           Show this message and exit
 """
-from pandas import CategoricalDtype     # TODO: pd.CategoricalDtype instead
-from sklearn.cluster import SpectralClustering
-from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.impute import SimpleImputer
-from docopt import docopt
 from pathlib import Path
-import logging
-import pandas as pd
-from typing import Tuple, Iterable
-import numpy as np
+from typing import Iterable
+
+from docopt import docopt
+from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
+from sklearn.impute import SimpleImputer
 from sklearn.metrics import multilabel_confusion_matrix
-from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.tree import DecisionTreeClassifier
 
-from preprocessor import *
 from explore_data import *
-import plotly.graph_objects as go
-import plotly.express as px
+from preprocessor import *
 
 
 def load_data(train_X_fn: Path, train_y_fn: Path):
@@ -122,7 +115,7 @@ def handle_ordered_categories(df: pd.DataFrame, imputers=None) -> Iterable[Simpl
             'LI - Evidence of invasion',
             'L1 - Evidence of invasion of superficial Lym.',
             'L2 - Evidence of invasion of depp Lym.'
-            ], ordered=True
+        ], ordered=True
     )
     df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
     hist_deg_imputer = SimpleImputer(
@@ -201,6 +194,62 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    ])
     return df, num_imp, ord_imp, encoder
 
+
+def build_model_and_accuracy(model, mlb_estimator, xtrain, ytrain, xtest, ytest):
+    from sklearn.metrics import accuracy_score, hamming_loss
+    # Create an Instance
+    clf = mlb_estimator(model)
+    clf.fit(xtrain, ytrain)
+    # Predict
+    clf_predictions = clf.predict(xtest)
+    # Check For Accuracy
+    acc = accuracy_score(ytest, clf_predictions)
+    ham = hamming_loss(ytest, clf_predictions)
+    result = {"accuracy:": acc, "hamming_score": ham}
+    return clf, result
+
+
+def build_model(model, mlb_estimator, xtrain, ytrain):
+    from sklearn.metrics import accuracy_score, hamming_loss
+    # Create an Instance
+
+    clf = mlb_estimator(model)
+    clf.fit(xtrain, ytrain)
+    return clf, None
+
+
+def get_models(X_train, y_train):
+    from sklearn.naive_bayes import GaussianNB, MultinomialNB
+    from skmultilearn.problem_transform import BinaryRelevance
+    from skmultilearn.problem_transform import ClassifierChain
+    from skmultilearn.problem_transform import LabelPowerset
+    from sklearn.svm import SVC
+    # binary classification:
+    clf_binary_rel = BinaryRelevance(
+        classifier=SVC(),
+        require_dense=[False, True])
+    clf_binary_rel.fit(X_train, y_train)
+    BinaryRelevance(classifier=MultinomialNB(alpha=1.0, class_prior=None,
+                                             fit_prior=True),
+                    require_dense=[True, True])
+    # Chains:
+    clf_chain_model, clf_chain_model_results = build_model(MultinomialNB(), ClassifierChain, X_train, y_train)
+
+    # PowerSet:
+    clf_labelPS_model, clf_labelPS_model_results = build_model(MultinomialNB(), LabelPowerset, X_train, y_train)
+    # # binary classification:
+    #
+    # # Chains:
+    # clf_chain_model, clf_chain_model_results = build_model(MultinomialNB(), ClassifierChain, X_train, y_train, X_test,
+    #                                                        y_test)
+    #
+    # # PowerSet:
+    # clf_labelPS_model, clf_labelPS_model_results = build_model(MultinomialNB(), LabelPowerset, X_train, y_train, X_test,
+    #                                                            y_test)
+
+    return clf_chain_model, clf_labelPS_model, clf_binary_rel
+
+
 # part1 --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_base_0.csv --test-y=splited_datasets/labels_test_base_0.csv --out="baseline_pred.csv"
 # python3 evaluate_part_0.py --gold=./splited_datasets/labels_test_base_0.csv --pred=./baseline_pred.csv
 if __name__ == '__main__':
@@ -214,6 +263,18 @@ if __name__ == '__main__':
         df = load_data(train_X_fn, train_y_fn)
 
         df, num_imp, ord_imp, encoder = parse_features(df)
+
+        # -------------------------------------PowerSet and Chain------------------------------------------------------
+        mlb = MultiLabelBinarizer()
+        transformed_y = mlb.fit_transform(df["אבחנה-Location of distal metastases"])
+        y_train = pd.DataFrame(transformed_y, columns=mlb.classes_, dtype=np.int64)
+        X_train = df.drop(["אבחנה-Location of distal metastases"], axis=1)
+        X_train = pd.DataFrame.to_numpy(X_train)
+        X_train = np.array(X_train, dtype=float)
+
+        clf_chain_model, clf_labelPS_model, clf_binary_rel = get_models(X_train, transformed_y)
+
+        # -------------------------------------------------------------------------------------------------------------
 
         mlb = MultiLabelBinarizer()
         transformed_y = mlb.fit_transform(df["אבחנה-Location of distal metastases"])
@@ -234,7 +295,7 @@ if __name__ == '__main__':
 
             df, num_imp, ord_imp, encoder = parse_features(df, num_imp, ord_imp, encoder)
 
-            transformed_y = mlb.transform( df["אבחנה-Location of distal metastases"])
+            transformed_y = mlb.transform(df["אבחנה-Location of distal metastases"])
             transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
 
             pred = baseline.predict(df.drop(["אבחנה-Location of distal metastases"], axis=1))
@@ -244,11 +305,8 @@ if __name__ == '__main__':
             combined = pd.DataFrame({"אבחנה-Location of distal metastases": mlb.inverse_transform(pred)})
             combined.to_csv(path_or_buf=out_path, index=False)
 
-
-
         # PCA::::
         # pca = PCA(n_components=2)
         # tran_pca = pca.fit_transform(df.drop(["אבחנה-Location of distal metastases"], axis=1))
         # fig = px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=(transformed_y_df.any(axis=1)))
         # fig.show()
-
