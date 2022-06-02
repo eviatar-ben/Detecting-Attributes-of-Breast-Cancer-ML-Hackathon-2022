@@ -8,19 +8,19 @@ def handle_ordered_categorical_cols(df):
     pass
 
 
-def handle_categorical_cols(df, encoder=True):
+def handle_categorical_cols(df, encoder=None):
     from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
     # 'Form Name'
     categorical_cols = [' Form Name', ' Hospital', 'אבחנה-Histological diagnosis',
                         'אבחנה-Margin Type']  # TODO 'אבחנה-Basic stage',
 
-    if encoder:
+    if encoder is None:
         encoder = OneHotEncoder(handle_unknown="ignore", sparse=False)
         encoder.fit(df[categorical_cols])
     transformed = encoder.transform(df[categorical_cols])
     transformed_df = pd.DataFrame(transformed, columns=encoder.get_feature_names_out(categorical_cols))
     result = pd.concat([df, transformed_df], axis=1)
-    return result.drop(categorical_cols, axis=1)
+    return result.drop(categorical_cols, axis=1), encoder
 
 
 def drop_cols(df, cols):
@@ -39,6 +39,7 @@ def handle_dates_features(df):
     df = df[df['אבחנה-Surgery date1'] != 'Unknown']
     df = df[df['אבחנה-Surgery date2'] != 'Unknown']
     df = df[df['אבחנה-Surgery date3'] != 'Unknown']
+    df.reset_index()
 
     # 'diagnosis_and_surgery_days_dif'  # 33-7
     dif = pd.to_datetime(df['אבחנה-Diagnosis date']) - pd.to_datetime(df['surgery before or after-Activity date'])
@@ -59,7 +60,7 @@ def handle_dates_features(df):
 
 
 def handle_ivi(df):
-    utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
+    # utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
     positive_val = ['yes', '+', 'extensive', 'pos', 'MICROPAPILLARY VARIANT', '(+)']
     negative_val = ['not', 'none', 'neg', 'no', '-', '(-)', 'NO', 'No']
 
