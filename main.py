@@ -168,7 +168,7 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     ord_imp = handle_ordered_categories(df, ord_imp)
     handle_side(df)
     drop_cols(df, ['אבחנה-Histological diagnosis',
-                   'User Name',
+                   #'User Name',
                    'אבחנה-Her2',
                    'אבחנה-N -lymph nodes mark (TNM)',
                    'אבחנה-Side',

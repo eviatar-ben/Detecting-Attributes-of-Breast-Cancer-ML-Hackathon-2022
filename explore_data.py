@@ -24,7 +24,9 @@ def preprocessing(features: pd.DataFrame):
 
     features["time from first surgery processed"] = features.apply(process_dates, axis=1)
 
+    features["time from second surgery processed"] = features.apply(process_dates_2, axis=1)
 
+    features["time from third surgery processed"] = features.apply(process_dates_3, axis=1)
 
 
 r_date = "\d+/\d+/\d+"
@@ -34,6 +36,28 @@ def process_dates(data):
     if isinstance(data["אבחנה-Surgery date1"], str) and not (data["אבחנה-Diagnosis date"] is np.nan):
         if re.findall(r_date, data["אבחנה-Surgery date1"]):
             date = datetime.strptime(data["אבחנה-Surgery date1"], "%d/%m/%Y")
+            return (data["אבחנה-Diagnosis date"] - date).days
+
+        else:
+            return 0
+    return 0
+
+
+def process_dates_2(data):
+    if isinstance(data["אבחנה-Surgery date2"], str) and not (data["אבחנה-Diagnosis date"] is np.nan):
+        if re.findall(r_date, data["אבחנה-Surgery date2"]):
+            date = datetime.strptime(data["אבחנה-Surgery date2"], "%d/%m/%Y")
+            return (data["אבחנה-Diagnosis date"] - date).days
+
+        else:
+            return 0
+    return 0
+
+
+def process_dates_3(data):
+    if isinstance(data["אבחנה-Surgery date3"], str) and not (data["אבחנה-Diagnosis date"] is np.nan):
+        if re.findall(r_date, data["אבחנה-Surgery date3"]):
+            date = datetime.strptime(data["אבחנה-Surgery date3"], "%d/%m/%Y")
             return (data["אבחנה-Diagnosis date"] - date).days
 
         else:
