@@ -168,7 +168,7 @@ def handle_ki67(df):
     different_values = [i for i in range(len(df['אבחנה-KI67 protein'])) if i not in union_idx]
 
     df.loc[different_values, 'אבחנה-KI67 protein'] = 20
-
+    df['אבחנה-KI67 protein'] = df['אבחנה-KI67 protein'].astype(float)
     return df
 
 
