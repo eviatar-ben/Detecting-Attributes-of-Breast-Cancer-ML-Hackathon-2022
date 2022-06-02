@@ -26,7 +26,8 @@ def load_data(train_X_fn: Path, train_y_fn: Path):
     ], infer_datetime_format=True, dayfirst=True)
 
     labels = pd.read_csv(train_y_fn)
-    full_data = pd.concat([features, labels])
+    full_data = features
+    full_data["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"]
     full_data = full_data.loc[:, ~full_data.columns.str.contains('^Unnamed')]
     full_data.reset_index(inplace=True, drop=True)
     return full_data
@@ -136,6 +137,7 @@ def handle_side(df: pd.DataFrame):
     df["Side_right"] = (df["אבחנה-Side"] == 'ימין') | (df["אבחנה-Side"] == 'דו צדדי')
     df["Side_left"] = (df["אבחנה-Side"] == 'שמאל') | (df["אבחנה-Side"] == 'דו צדדי')
 
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     # print(args)
@@ -165,6 +167,12 @@ if __name__ == '__main__':
                        'אבחנה-Surgery name2',   # TODO
                        'אבחנה-Surgery name3',  # TODO
                        'אבחנה-T -Tumor mark (TNM)',  # TODO
+                       'אבחנה-Tumor depth',     # TODO
+                       'אבחנה-Tumor width',     # TODO
+                       'אבחנה-er',
+                       'אבחנה-pr',
+                       'id-hushed_internalpatientid',
+                       'surgery before or after-Actual activity',   # TODO
                        # TODO: retry dates with manual parse for Unknowns?
                        'אבחנה-Surgery date1',
                        'אבחנה-Surgery date2',
@@ -173,8 +181,4 @@ if __name__ == '__main__':
                        'אבחנה-Diagnosis date',
                        ])
         a = df.describe()
-        # head = df.head(1000)
-        # a = head.describe()
-        # for colname, colval in df.iteritems():
-        #     print(colname)
-        #     print(pd.unique(head[colname]))
+
