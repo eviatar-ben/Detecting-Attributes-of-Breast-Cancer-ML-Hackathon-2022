@@ -12,7 +12,7 @@ import logging
 import pandas as pd
 from typing import Tuple, Iterable
 import numpy as np
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
 from preprocessor import *
 from explore_data import *
 
@@ -26,6 +26,7 @@ def load_data(train_X_fn: Path, train_y_fn: Path):
     ], infer_datetime_format=True, dayfirst=True)
 
     labels = pd.read_csv(train_y_fn)
+    labels["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"].apply(eval)
     full_data = features
     full_data["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"]
     full_data = full_data.loc[:, ~full_data.columns.str.contains('^Unnamed')]
@@ -180,5 +181,12 @@ if __name__ == '__main__':
                        'surgery before or after-Activity date',
                        'אבחנה-Diagnosis date',
                        ])
+
+        mlb = MultiLabelBinarizer()
+        transformed_y = mlb.fit_transform(df["אבחנה-Location of distal metastases"])
+        transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
+        result = pd.concat([df, transformed_y_df], axis=1).drop(
+            ["אבחנה-Location of distal metastases"], axis=1)
+
         a = df.describe()
 
