@@ -24,7 +24,7 @@ def handle_categorical_cols(df, encoder=None):
     transformed = encoder.transform(df[categorical_cols])
     transformed_df = pd.DataFrame(transformed, columns=encoder.get_feature_names_out(categorical_cols))
     result = pd.concat([df, transformed_df], axis=1)
-    return result.drop(categorical_cols, axis=1), encoder
+    return result, encoder
 
 
 def drop_cols(df, cols):

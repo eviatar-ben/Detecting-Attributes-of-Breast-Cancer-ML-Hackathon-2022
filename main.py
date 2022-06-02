@@ -13,8 +13,10 @@ import tqdm
 from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
 from sklearn.cluster import SpectralClustering
 from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, \
+    BaggingClassifier
+from sklearn.linear_model import LinearRegression, RidgeClassifier, \
+    RidgeClassifierCV
 from sklearn.impute import SimpleImputer
 from docopt import docopt
 from pathlib import Path
@@ -24,6 +26,7 @@ from typing import Tuple, Iterable
 import numpy as np
 from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
 from sklearn.model_selection import KFold, cross_validate, GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
 from sklearn.tree import DecisionTreeClassifier
 from skmultilearn.problem_transform import LabelPowerset
@@ -63,14 +66,14 @@ def handle_numerical(df: pd.DataFrame, imputers=None) -> Iterable[SimpleImputer]
         "אבחנה-Age",
     ]
 
-    df['אבחנה-Surgery sum'].mask(
-        (df['אבחנה-Surgery sum'].isna()),
-        (df['אבחנה-Surgery date1'].notna()) +
-        (df['אבחנה-Surgery date2'].notna()) +
-        (df['אבחנה-Surgery date3'].notna()),
-        inplace=True
-    )
-    df['אבחנה-Surgery sum'] = df['אבחנה-Surgery sum'].astype(float)
+    # df['אבחנה-Surgery sum'].mask(
+    #     (df['אבחנה-Surgery sum'].isna()),
+    #     (df['אבחנה-Surgery date1'].notna()) +
+    #     (df['אבחנה-Surgery date2'].notna()) +
+    #     (df['אבחנה-Surgery date3'].notna()),
+    #     inplace=True
+    # )
+    df['אבחנה-Surgery sum'] = df['אבחנה-Surgery sum'].fillna(0).astype(float)
 
     df['אבחנה-Nodes exam'].fillna(0, inplace=True)
     df['אבחנה-Positive nodes'].mask(
@@ -106,7 +109,8 @@ def handle_ordered_categories(df: pd.DataFrame, imputers=None) -> Iterable[Simpl
     df["אבחנה-Basic stage"] = base_stage_imputer.fit_transform(
         df[["אבחנה-Basic stage"]]
     )
-    df["אבחנה-Basic stage"] = df["אבחנה-Basic stage"].astype(base_stage_cat)
+    df["Basic stage"] = df["אבחנה-Basic stage"].astype(base_stage_cat)
+    df["Basic stage"] = df["Basic stage"].cat.codes.fillna(-10)
 
     hist_deg_cat = CategoricalDtype(
         categories=[
@@ -124,7 +128,8 @@ def handle_ordered_categories(df: pd.DataFrame, imputers=None) -> Iterable[Simpl
     df["אבחנה-Histopatological degree"] = hist_deg_imputer.fit_transform(
         df[["אבחנה-Histopatological degree"]]
     )
-    df["אבחנה-Histopatological degree"] = df["אבחנה-Histopatological degree"].astype(hist_deg_cat)
+    df["Histopatological degree"] = df["אבחנה-Histopatological degree"].astype(hist_deg_cat)
+    df["Histopatological degree"] = df["Histopatological degree"].cat.codes.fillna(-10)
 
     lym_pen_cat = CategoricalDtype(
         categories=[
@@ -135,22 +140,23 @@ def handle_ordered_categories(df: pd.DataFrame, imputers=None) -> Iterable[Simpl
         ], ordered=True
     )
     df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
-    hist_deg_imputer = SimpleImputer(
+    lym_pen_imputer = SimpleImputer(
         strategy="constant",
-        fill_value='L0 - No Evidence of invasion'  # TODO: fill based on other columns
+        fill_value=np.nan  # TODO: fill based on other columns
     )
     if imputers is not None:
-        hist_deg_imputer = imputers[2]
+        lym_pen_imputer = imputers[2]
 
-    df["אבחנה-Lymphatic penetration"] = hist_deg_imputer.fit_transform(
+    df["אבחנה-Lymphatic penetration"] = lym_pen_imputer.fit_transform(
         df[["אבחנה-Lymphatic penetration"]]
     )
-    df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
+    df["Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
+    df["Lymphatic penetration"] = df["Lymphatic penetration"].cat.codes.fillna(-10)
 
     cat_columns = df.select_dtypes(['category']).columns
     df[cat_columns] = df[cat_columns].apply(lambda x: x.cat.codes)
 
-    return [base_stage_imputer, hist_deg_imputer, hist_deg_imputer]
+    return [base_stage_imputer, lym_pen_imputer, hist_deg_imputer]
 
 
 def handle_side(df: pd.DataFrame):
@@ -162,13 +168,16 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     num_imp = handle_numerical(df, num_imp)
     # df = handle_dates_features(df)
     df, encoder = handle_categorical_cols(df, encoder)
-    df = handle_ki67(df)
     df = handle_ivi(df)
+    df = handle_ki67(df)
     preprocessing(df)
     ord_imp = handle_ordered_categories(df, ord_imp)
+
     handle_side(df)
     drop_cols(df, ['אבחנה-Histological diagnosis',
-                   #'User Name',
+                   # 'אבחנה-Ivi -Lymphovascular invasion',
+                   # 'אבחנה-KI67 protein',
+                   # 'User Name',
                    'אבחנה-Her2',
                    'אבחנה-N -lymph nodes mark (TNM)',
                    'אבחנה-Side',
@@ -191,7 +200,14 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    'surgery before or after-Activity date',
                    'אבחנה-Diagnosis date',
                    # ' Form Name',
+                   "אבחנה-Basic stage",
+                   "אבחנה-Histopatological degree",
+                   "אבחנה-Lymphatic penetration",
+                   ' Hospital',
+                   'אבחנה-Margin Type'
                    ])
+
+    # df = df[["אבחנה-Location of distal metastases"]]
     return df, num_imp, ord_imp, encoder
 
 
@@ -220,11 +236,11 @@ def part_1(args):
     transformed_y = mlb.fit_transform(
         df["אבחנה-Location of distal metastases"])
     transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
-
+    # df = pd.concat([df, transformed_y_df], axis=1)
     # Make prediction:
     if args['pred']:
-        model = RandomForestClassifier()
-        model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1),
+        model = LabelPowerset(RandomForestClassifier(ccp_alpha=0.00001))
+        model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float),
                   transformed_y_df)
 
         train_X_fn = Path(args["--test-x"])
@@ -290,14 +306,16 @@ def part_1(args):
     # Evaluate cross validation:
     if args["--cv"] is not None:
         features = df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float)
-        print(features.describe())
         labels = transformed_y_df
         splits = int(args["--cv"])
 
-        models = [RandomForestClassifier(),
-                  RandomForestClassifier(ccp_alpha=0.0001),
-                  LabelPowerset(DecisionTreeClassifier(ccp_alpha=0.0001)),
-                  LabelPowerset(DecisionTreeClassifier())]
+        models = [
+                DecisionTreeClassifier(max_depth=18),
+                RandomForestClassifier(),
+                  RidgeClassifierCV(),
+                  LabelPowerset(DecisionTreeClassifier()),
+                  LabelPowerset(RandomForestClassifier()),
+                  ]
         # models += [i for i in multi()]
         for model in models:
             scores = cross_validate(model, features, labels, cv=KFold(n_splits=splits, shuffle=True),
@@ -305,16 +323,18 @@ def part_1(args):
                                     return_train_score=True,
                                     return_estimator=True)
             print(model)
-            print("## f1_macro ##")
+            print("## f1_macro Test ##")
             print(np.mean(scores["test_f1_macro"]))
             print(scores["test_f1_macro"])
-            # print(np.mean(scores["train_f1_macro"]))
-            # print(scores["train_f1_macro"])
-            print("## f1_micro ##")
+            print("## f1_macro Train ##")
+            print(np.mean(scores["train_f1_macro"]))
+            print(scores["train_f1_macro"])
+            print("## f1_micro Test ##")
             print(np.mean(scores["test_f1_micro"]))
             print(scores["test_f1_micro"])
-            # print(np.mean(scores["train_f1_micro"]))
-            # print(scores["train_f1_micro"])
+            print("## f1_micro Train ##")
+            print(np.mean(scores["train_f1_micro"]))
+            print(scores["train_f1_micro"])
 
 
 def part_2(args):
@@ -426,14 +446,15 @@ def part_3(args):
 
     df, num_imp, ord_imp, encoder = parse_features(df)
     # PCA::::
-    pca = PCA(n_components=2)
-    tran_pca = pca.fit_transform(df.drop(["אבחנה-Location of distal metastases"], axis=1))
-    fig = px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=df['אבחנה-Stage'])
+    pca = PCA(n_components=3)
+    tran_pca = pca.fit_transform(df.astype(float))
+    fig = px.scatter_3d(x=tran_pca[:, 0], y=tran_pca[:, 1], z=tran_pca[:, 2], color=df['stage processed'])
     fig.show()
 
 
 # part1 pred --train-x=splited_datasets/X_train.csv --train-y=splited_datasets/y_train.csv --test-x=splited_datasets/X_test.csv --out=./new_val_pred.csv
-# part1 --cv=10 --train-x=splited_datasets/X_train.csv --train-y=splited_datasets/y_train.csv
+# part1 --cv=5 --train-x=splited_datasets/X_train_more.csv --train-y=splited_datasets/y_train_more.csv
+# part3 --train-x=splited_datasets/X_train_more.csv
 if __name__ == '__main__':
     args = docopt(__doc__)
     print(args)
