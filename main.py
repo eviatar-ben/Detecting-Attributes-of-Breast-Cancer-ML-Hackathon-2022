@@ -24,6 +24,7 @@ def load_data(train_X_fn: Path, train_y_fn: Path):
         "אבחנה-Surgery date3",
         "surgery before or after-Activity date"
     ], infer_datetime_format=True, dayfirst=True)
+
     labels = pd.read_csv(train_y_fn)
     full_data = pd.concat([features, labels])
     full_data = full_data.loc[:, ~full_data.columns.str.contains('^Unnamed')]
@@ -146,7 +147,7 @@ if __name__ == '__main__':
         df = load_data(train_X_fn, train_y_fn)
 
         handle_numerical(df)
-        df = handle_dates_features(df)
+        # df = handle_dates_features(df)
         df = handle_categorical_cols(df)
         preprocessing(df)
 
@@ -164,8 +165,13 @@ if __name__ == '__main__':
                        'אבחנה-Surgery name2',   # TODO
                        'אבחנה-Surgery name3',  # TODO
                        'אבחנה-T -Tumor mark (TNM)',  # TODO
+                       # TODO: retry dates with manual parse for Unknowns?
+                       'אבחנה-Surgery date1',
+                       'אבחנה-Surgery date2',
+                       'אבחנה-Surgery date3',
+                       'surgery before or after-Activity date',
+                       'אבחנה-Diagnosis date',
                        ])
-
         a = df.describe()
         # head = df.head(1000)
         # a = head.describe()
