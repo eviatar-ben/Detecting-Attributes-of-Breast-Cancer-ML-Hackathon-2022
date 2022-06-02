@@ -1,6 +1,6 @@
 """ Usage:
     <file-name> (part1 | part2 | part3) --train-x=TRAIN_X --train-y=TRAIN_Y [--test-x=TEST_X]
-    <file-name> (part1 | part2 | part3) --train-x=TRAIN_X --train-y=TRAIN_Y [--test-x=TEST_X --test-y=TEST_ --out=PRED]
+    <file-name> (part1 | part2 | part3) --train-x=TRAIN_X --train-y=TRAIN_Y [--test-x=TEST_X] [baseline --test-y=TEST_Y --out=PRED]
 
 Options:
   --help                           Show this message and exit
@@ -165,6 +165,42 @@ def handle_side(df: pd.DataFrame):
     df["Side_left"] = (df["אבחנה-Side"] == 'שמאל') | (df["אבחנה-Side"] == 'דו צדדי')
 
 
+def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
+    num_imp = handle_numerical(df, num_imp)
+    # df = handle_dates_features(df)
+    df, encoder = handle_categorical_cols(df, encoder)
+    # df = handle_ki67(df)
+    df = handle_ivi(df)
+    preprocessing(df)
+    ord_imp = handle_ordered_categories(df, ord_imp)
+    handle_side(df)
+    drop_cols(df, ['User Name',
+                   'אבחנה-Her2',
+                   # 'אבחנה-Ivi -Lymphovascular invasion',
+                   'אבחנה-KI67 protein',  # TODO
+                   'אבחנה-N -lymph nodes mark (TNM)',
+                   'אבחנה-Side',
+                   'אבחנה-Stage',
+                   'אבחנה-Surgery name1',  # TODO
+                   'אבחנה-Surgery name2',  # TODO
+                   'אבחנה-Surgery name3',  # TODO
+                   'אבחנה-T -Tumor mark (TNM)',
+                   "אבחנה-M -metastases mark (TNM)",
+                   'אבחנה-Tumor depth',  # TODO
+                   'אבחנה-Tumor width',  # TODO
+                   'אבחנה-er',
+                   'אבחנה-pr',
+                   'id-hushed_internalpatientid',
+                   'surgery before or after-Actual activity',  # TODO
+                   # TODO: retry dates with manual parse for Unknowns?
+                   'אבחנה-Surgery date1',
+                   'אבחנה-Surgery date2',
+                   'אבחנה-Surgery date3',
+                   'surgery before or after-Activity date',
+                   'אבחנה-Diagnosis date',
+                   ])
+    return df, num_imp, ord_imp, encoder
+
 if __name__ == '__main__':
     np.random.seed(0)
     args = docopt(__doc__)
@@ -175,41 +211,7 @@ if __name__ == '__main__':
 
         df = load_data(train_X_fn, train_y_fn)
 
-        num_imp = handle_numerical(df)
-        # df = handle_dates_features(df)
-        df, encoder = handle_categorical_cols(df)
-        # df = handle_ki67(df)
-        df = handle_ivi(df)
-        preprocessing(df)
-
-        ord_imp = handle_ordered_categories(df)
-        handle_side(df)
-
-        drop_cols(df, ['User Name',
-                       'אבחנה-Her2',
-                       # 'אבחנה-Ivi -Lymphovascular invasion',
-                       'אבחנה-KI67 protein',        # TODO
-                       'אבחנה-N -lymph nodes mark (TNM)',
-                       'אבחנה-Side',
-                       'אבחנה-Stage',
-                       'אבחנה-Surgery name1',   # TODO
-                       'אבחנה-Surgery name2',   # TODO
-                       'אבחנה-Surgery name3',  # TODO
-                       'אבחנה-T -Tumor mark (TNM)',
-                       "אבחנה-M -metastases mark (TNM)",
-                       'אבחנה-Tumor depth',     # TODO
-                       'אבחנה-Tumor width',     # TODO
-                       'אבחנה-er',
-                       'אבחנה-pr',
-                       'id-hushed_internalpatientid',
-                       'surgery before or after-Actual activity',   # TODO
-                       # TODO: retry dates with manual parse for Unknowns?
-                       'אבחנה-Surgery date1',
-                       'אבחנה-Surgery date2',
-                       'אבחנה-Surgery date3',
-                       'surgery before or after-Activity date',
-                       'אבחנה-Diagnosis date',
-                       ])
+        df, num_imp, ord_imp, encoder = parse_features(df)
 
         mlb = MultiLabelBinarizer()
         transformed_y = mlb.fit_transform(df["אבחנה-Location of distal metastases"])
@@ -228,41 +230,8 @@ if __name__ == '__main__':
 
             df = load_data(train_X_fn, train_y_fn)
 
-            handle_numerical(df, num_imp)
-            # df = handle_dates_features(df)
-            df, encoder = handle_categorical_cols(df, encoder)
-            # df = handle_ki67(df)
-            df = handle_ivi(df)
-            preprocessing(df)
+            df, num_imp, ord_imp, encoder = parse_features(df, num_imp, ord_imp, encoder)
 
-            handle_ordered_categories(df, ord_imp)
-            handle_side(df)
-
-            drop_cols(df, ['User Name',
-                           'אבחנה-Her2',
-                           # 'אבחנה-Ivi -Lymphovascular invasion',
-                           'אבחנה-KI67 protein',  # TODO
-                           'אבחנה-N -lymph nodes mark (TNM)',
-                           'אבחנה-Side',
-                           'אבחנה-Stage',
-                           'אבחנה-Surgery name1',  # TODO
-                           'אבחנה-Surgery name2',  # TODO
-                           'אבחנה-Surgery name3',  # TODO
-                           'אבחנה-T -Tumor mark (TNM)',
-                           "אבחנה-M -metastases mark (TNM)",
-                           'אבחנה-Tumor depth',  # TODO
-                           'אבחנה-Tumor width',  # TODO
-                           'אבחנה-er',
-                           'אבחנה-pr',
-                           'id-hushed_internalpatientid',
-                           'surgery before or after-Actual activity',  # TODO
-                           # TODO: retry dates with manual parse for Unknowns?
-                           'אבחנה-Surgery date1',
-                           'אבחנה-Surgery date2',
-                           'אבחנה-Surgery date3',
-                           'surgery before or after-Activity date',
-                           'אבחנה-Diagnosis date',
-                           ])
             transformed_y = mlb.transform(
                 df["אבחנה-Location of distal metastases"])
             transformed_y_df = pd.DataFrame(transformed_y,

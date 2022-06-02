@@ -154,13 +154,13 @@ def handle_ki67(df):
 
     # todo: decide based on correlation nan values
     nan_idx = df[df['אבחנה-KI67 protein'].isnull()].index.tolist()
-    df['אבחנה-KI67 protein'][nan_idx] = 10
+    df.loc[nan_idx, 'אבחנה-KI67 protein'] = 10
 
     # todo: handle with values that not appears in the list ahead
     union_idx = {*low_indices, *medium_indices, *medium_high_indices, *high_indices, *nan_idx}
     different_values = [i for i in range(len(df['אבחנה-KI67 protein'])) if i not in union_idx]
 
-    df['אבחנה-KI67 protein'][different_values] = 20
+    df.loc[different_values, 'אבחנה-KI67 protein'] = 20
 
     return df
 
