@@ -5,18 +5,16 @@ from sklearn.model_selection import train_test_split
 def eda():
     labels1 = pd.read_csv("train.labels.1.csv")
 
-    full_fea = pd.read_csv("train.feats.csv")
+    full_fea = pd.read_csv("train.feats.csv").drop([" Form Name", "User Name"], axis=1).drop_duplicates()
+
+    labels1 = labels1.loc[full_fea.index]
 
     X_train, X_test, y_train, y_test = train_test_split(full_fea, labels1)
 
-    X_train_base, X_test_base, y_train_base, y_test_base = train_test_split(X_train, y_train)
-
-    y_test.to_csv("splited_datasets/y_test1.csv", index=False)
-    X_test.to_csv("splited_datasets/X_test1.csv", index=False)
-    X_train_base.to_csv("splited_datasets/X_train_base1.csv", index=False)
-    y_train_base.to_csv("splited_datasets/y_train_base1.csv", index=False)
-    X_test_base.to_csv("splited_datasets/X_test_base1.csv", index=False)
-    y_test_base.to_csv("splited_datasets/y_test_base1.csv", index=False)
+    y_test.to_csv("splited_datasets/y_test_one.csv", index=False)
+    X_test.to_csv("splited_datasets/X_test_one.csv", index=False)
+    X_train.to_csv("splited_datasets/X_train_one.csv", index=False)
+    y_train.to_csv("splited_datasets/y_train_one.csv", index=False)
 
 
 if __name__ == '__main__':

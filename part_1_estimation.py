@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score, KFold
 from main import parse_features
@@ -17,11 +16,15 @@ def estimate_1(df, labels):
 
 if __name__ == '__main__':
     losses = []
-    features = pd.read_csv("train.feats.csv")
+    features = pd.read_csv("splited_datasets/X_train_one.csv")
 
     df, num_imp, ord_imp, encoder = parse_features(features)
 
-    labels = pd.read_csv("train.labels.1.csv")
+    df = df.drop_duplicates()
+
+    labels = pd.read_csv("splited_datasets/y_train_one.csv")
+
+    labels = labels.loc[df.index]
 
     for i in range(5):
         np.random.seed(i)

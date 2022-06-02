@@ -1,6 +1,7 @@
 import pandas as pd
 import re
 import numpy as np
+from datetime import datetime
 
 
 def preprocessing(features: pd.DataFrame):
@@ -20,6 +21,24 @@ def preprocessing(features: pd.DataFrame):
         features["אבחנה-T -Tumor mark (TNM)"].fillna("TX").apply(processing_TNM, args="t")
 
     features["stage processed"] = features["אבחנה-Stage"].fillna("ex").apply(processing_TNM, args="e")
+
+    features["time from first surgery processed"] = features.apply(process_dates, axis=1)
+
+
+
+
+r_date = "\d+/\d+/\d+"
+
+
+def process_dates(data):
+    if isinstance(data["אבחנה-Surgery date1"], str) and not (data["אבחנה-Diagnosis date"] is np.nan):
+        if re.findall(r_date, data["אבחנה-Surgery date1"]):
+            date = datetime.strptime(data["אבחנה-Surgery date1"], "%d/%m/%Y")
+            return (data["אבחנה-Diagnosis date"] - date).days
+
+        else:
+            return 0
+    return 0
 
 
 r_num = "\d+\.*\d*"
@@ -109,7 +128,7 @@ def processing_her2(string):
                 elif num > 0:
                     return 1
                 else:
-                    return 0
+                    return -10
 
             nums.append(num)
 
@@ -135,4 +154,9 @@ def processing_her2(string):
 
 
 if __name__ == '__main__':
-    preprocessing(pd.read_csv("train.feats.csv"))
+    preprocessing(pd.read_csv("train.feats.csv", parse_dates=[
+        "אבחנה-Diagnosis date",
+        "אבחנה-Surgery date1",
+        "אבחנה-Surgery date2",
+        "אבחנה-Surgery date3"
+    ], infer_datetime_format=True, dayfirst=True))
