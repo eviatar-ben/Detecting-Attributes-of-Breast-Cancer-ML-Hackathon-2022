@@ -189,10 +189,11 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     return df, num_imp, ord_imp, encoder
 
 
-def multi(X_train, y_train):
+def multi():
     import MultiLabelClassifier
     X_train = np.array(pd.DataFrame.to_numpy(X_train), dtype=float)
     return MultiLabelClassifier.get_models(X_train, y_train)
+
 
 def part_1(args):
     train_X_fn = Path(args["--train-x"])
@@ -300,7 +301,6 @@ def part_2(args):
     ], infer_datetime_format=True, dayfirst=True)
 
     df, num_imp, ord_imp, encoder = parse_features(df)
-
 
     if args['--parsed'] is not None:
         df['אבחנה-Tumor size'] = labels['אבחנה-Tumor size']
