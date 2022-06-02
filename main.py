@@ -9,7 +9,7 @@ Options:
   --help                           Show this message and exit
   --seed=SEED                       [default: 0]
 """
-from pandas import CategoricalDtype     # TODO: pd.CategoricalDtype instead
+from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
 from sklearn.cluster import SpectralClustering
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
@@ -128,7 +128,7 @@ def handle_ordered_categories(df: pd.DataFrame, imputers=None) -> Iterable[Simpl
             'LI - Evidence of invasion',
             'L1 - Evidence of invasion of superficial Lym.',
             'L2 - Evidence of invasion of depp Lym.'
-            ], ordered=True
+        ], ordered=True
     )
     df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
     hist_deg_imputer = SimpleImputer(
@@ -189,6 +189,11 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     return df, num_imp, ord_imp, encoder
 
 
+def multi(X_train, y_train):
+    import MultiLabelClassifier
+    X_train = np.array(pd.DataFrame.to_numpy(X_train), dtype=float)
+    return MultiLabelClassifier.get_models(X_train, y_train)
+
 def part_1(args):
     # Parse train:
     train_X_fn = Path(args["--train-x"])
@@ -206,6 +211,8 @@ def part_1(args):
     transformed_y = mlb.fit_transform(
         df["אבחנה-Location of distal metastases"])
     transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
+
+    multi(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)
 
     # Make prediction:
     if args['pred']:
@@ -264,8 +271,8 @@ def part_1(args):
 
         out_path = Path(args["--out"])
         combined = pd.DataFrame({
-                                    "אבחנה-Location of distal metastases": mlb.inverse_transform(
-                                        pred)})
+            "אבחנה-Location of distal metastases": mlb.inverse_transform(
+                pred)})
         combined.to_csv(path_or_buf=out_path, index=False)
 
     # Evaluate cross validation:

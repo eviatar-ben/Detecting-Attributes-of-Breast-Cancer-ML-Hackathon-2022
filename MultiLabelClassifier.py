@@ -11,6 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB, MultinomialNB
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, hamming_loss, classification_report
 
 # Split Dataset into Train and Text
@@ -25,44 +26,37 @@ from skmultilearn.problem_transform import LabelPowerset
 from skmultilearn.adapt import MLkNN
 import skmultilearn
 
-# load data
-X_train = pd.read_csv(r'splited_datasets/features_train_base_0.csv')
-y_train = pd.read_csv(r'splited_datasets/labels_train_base_0.csv')
-
 
 # Convert Our Multi-Label Prob to Multi-Class
 
 # binary classification
-def binary_relevance():
+def binary_relevance(X_train, y_train):
     """ basic approaches to multi-label classification, it ignores relationships between labels
     correlation between labels are lost """
     binary_rel_clf = BinaryRelevance(MultinomialNB())
     binary_rel_clf.fit(X_train, y_train)
-    br_prediction = binary_rel_clf.predict(X_test)
-    # Accuracy
-    accuracy_score(y_test, br_prediction)
 
 
-def build_model(model, mlb_estimator, xtrain, ytrain, xtest, ytest):
+def build_model(model, mlb_estimator, X_train, y_train):
     # Create an Instance
+    from sklearn.preprocessing import MinMaxScaler  # fixed import
+
+    # scaler = MinMaxScaler()
+    # X_train = scaler.fit_transform(X_train)
     clf = mlb_estimator(model)
-    clf.fit(xtrain, ytrain)
-    # Predict
-    clf_predictions = clf.predict(xtest)
-    # Check For Accuracy
-    acc = accuracy_score(ytest, clf_predictions)
-    ham = hamming_loss(ytest, clf_predictions)
-    result = {"accuracy:": acc, "hamming_score": ham}
-    return result
+    clf.fit(X_train, y_train)
 
 
-# Chains:
-clf_chain_model = build_model(MultinomialNB(), ClassifierChain, X_train, y_train, X_test, y_test)
+def get_models(X_train, y_train):
+    # binary_relevance(X_train, y_train)
+    # Chains:
+    clf_chain_model = build_model(RandomForestClassifier(), ClassifierChain, X_train, y_train)
 
-# Powerset:
-clf_labelP_model = build_model(MultinomialNB(), LabelPowerset, X_train, y_train, X_test, y_test)
+    # PowerSet:
+    clf_labelPS_model = build_model(RandomForestClassifier(), LabelPowerset, X_train, y_train)
 
-# -------------------------------------------adaptive algorithms: KNN RF -----------------------------------------------
+    # return clf_chain_model, clf_labelPS_model
+    # --------------------------------------adaptive algorithms: KNN RandomForest --------------------------------------
 
-
-# -------------------------------------------ansamble methods -----------------------------------------------
+    # -------------------------------------------assemble methods -----------------------------------------------
+    return clf_chain_model, clf_labelPS_model
