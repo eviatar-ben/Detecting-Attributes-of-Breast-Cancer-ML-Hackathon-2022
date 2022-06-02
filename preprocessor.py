@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import utilities
 
+
 def handle_ordered_categorical_cols(df):
     # 'Histological Diagnosis'
     pass
@@ -11,7 +12,7 @@ def handle_categorical_cols(df, encoder=True):
     from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
     # 'Form Name'
     categorical_cols = [' Form Name', ' Hospital', 'אבחנה-Histological diagnosis',
-                        'אבחנה-Margin Type']   # TODO 'אבחנה-Basic stage',
+                        'אבחנה-Margin Type']  # TODO 'אבחנה-Basic stage',
 
     if encoder:
         encoder = OneHotEncoder(handle_unknown="ignore", sparse=False)
@@ -80,6 +81,43 @@ def handle_ivi(df):
     return df
 
 
+def handle_ki67(df):
+    utilities.present_unique_values(df, 'אבחנה-KI67 protein')
+    low = ['6-9%', '15%', '20', '20%', '6%-9%', 'score 3-4', '15-20%', '10%', '5% vs 16-30%', '10', '9', '5%', '8-15%',
+           '1', '<5%', '15', '4%', '1%', '5-10%', '10-14%', '10-15%', '15-30%', '3%', '2%', '1-2%', '10-20%', '06-Sep',
+           '03-May', '5']
+    medium = [
+        '50', '45%', '455', '40%', '30%', '40=50%', '50%', '20-30%', '30', '10-49%', '30-50%', '45', '40', '50% score4',
+        'score 3', '49%', '40-50%', '25%', '30-40%', '35%', '30-35%']
+    medium_high = ['60', '60%', '50-60%', '70', '50-70%', '+>50%', '60-70%']
+    high = ['90%', '80%', '70%', '90', '95%', '75%', '80-90%', '85%', 'High', 'Score 4']
+
+    for val in low:
+        cur = df['אבחנה-KI67 protein'] == val
+        indices = cur[cur].index
+        df.loc[indices, 'אבחנה-KI67 protein'] = 20
+
+    for val in medium:
+        cur = df['אבחנה-KI67 protein'] == val
+        indices = cur[cur].index
+        df.loc[indices, 'אבחנה-KI67 protein'] = 40
+
+    for val in medium_high:
+        cur = df['אבחנה-KI67 protein'] == val
+        indices = cur[cur].index
+        df.loc[indices, 'אבחנה-KI67 protein'] = 60
+
+    for val in high:
+        cur = df['אבחנה-KI67 protein'] == val
+        indices = cur[cur].index
+        df.loc[indices, 'אבחנה-KI67 protein'] = 80
+
+    # todo: decide based on correlation nan values
+    nan_idx = df[df['אבחנה-KI67 protein'].isnull()].index.tolist()
+    df['אבחנה-KI67 protein'][nan_idx] = 10
+    return df
+
+
 def main():
     df = pd.read_csv(r'splited_datasets/features_train_base_0.csv', parse_dates=[
         "אבחנה-Diagnosis date",
@@ -88,13 +126,11 @@ def main():
         "אבחנה-Surgery date3",
         "surgery before or after-Activity date"
     ], infer_datetime_format=True, dayfirst=True)
-    drop_cols(df, ['User Name'])
-    df = handle_dates_features(df)
-    df = handle_categorical_cols(df)
-    df = handle_ivi(df)
-
-
-
+    # drop_cols(df, ['User Name'])
+    # df = handle_dates_features(df)
+    # df = handle_categorical_cols(df)
+    # df = handle_ivi(df)
+    df = handle_ki67(df)
 
 
 if __name__ == '__main__':
