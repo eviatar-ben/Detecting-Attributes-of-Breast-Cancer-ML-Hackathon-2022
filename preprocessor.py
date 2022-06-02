@@ -1,6 +1,5 @@
 import pandas as pd
-
-
+import utilities
 def handle_ordered_categorical_cols(df):
     # 'Histological Diagnosis'
     pass
@@ -56,6 +55,28 @@ def handle_dates_features(df):
     return df
 
 
+def handle_ivi(df):
+    utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
+    positive_val = ['yes', '+', 'extensive', 'pos', 'MICROPAPILLARY VARIANT', '(+)']
+    negative_val = ['not', 'none', 'neg', 'no', '-', '(-)', 'NO', 'No']
+
+    last = df['אבחנה-Ivi -Lymphovascular invasion'] == 'yes'
+
+    for pos_val in positive_val:
+        cur = df['אבחנה-Ivi -Lymphovascular invasion'] == pos_val
+        last = cur | last
+    df['pos_ivi'] = last
+
+    last = df['אבחנה-Ivi -Lymphovascular invasion'] == 'not'
+    for neg_val in negative_val:
+        cur = df['אבחנה-Ivi -Lymphovascular invasion'] == neg_val
+        last = cur | last
+    df['neg_ivi'] = last
+
+    drop_cols(df, ['אבחנה-Ivi -Lymphovascular invasion'])
+    return df
+
+
 def main():
     df = pd.read_csv(r'splited_datasets/features_train_base_0.csv', parse_dates=[
         "אבחנה-Diagnosis date",
@@ -67,8 +88,10 @@ def main():
     drop_cols(df, ['User Name'])
     df = handle_dates_features(df)
     df = handle_categorical_cols(df)
+    df = handle_ivi(df)
 
-    df.to_csv(r'splited_datasets/features_train_base_0_preprocessed.csv')
+
+
 
 
 if __name__ == '__main__':
