@@ -1,6 +1,8 @@
 """ Usage:
+    <file-name> part1 pred --train-x=TRAIN_X --train-y=TRAIN_Y [--parsed=OUT_FILE] --test-x=TEST_X --out=PRED [options]
+    <file-name> part1 test --train-x=TRAIN_X --train-y=TRAIN_Y [--parsed=OUT_FILE] --test-x=TEST_X --test-y=TEST_Y --out=PRED [options]
     <file-name> part1 --train-x=TRAIN_X --train-y=TRAIN_Y --parsed=OUT_FILE [options]
-    <file-name> part1 --cv=K (--train-x=TRAIN_X --train-y=TRAIN_Y | --ready=IN_FILE) [options]
+    <file-name> part1 --cv=K (--train-x=TRAIN_X --train-y=TRAIN_Y [--parsed=OUT_FILE] | --ready=IN_FILE) [options]
     <file-name> part1 baseline --train-x=TRAIN_X --train-y=TRAIN_Y --test-x=TEST_X --test-y=TEST_Y --out=PRED [--parsed=OUT_FILE] [options]
     <file-name> (part2 | part3) --train-x=TRAIN_X --train-y=TRAIN_Y --test-x=TEST_X --test-y=TEST_Y --out=PRED [--parsed=OUT_FILE] [options]
 
@@ -214,26 +216,58 @@ if __name__ == '__main__':
         seed = int(args['--seed'])
     np.random.seed(seed)
     if args["part1"]:
-        train_X_fn = Path(args["--train-x"])
-        train_y_fn = Path(args["--train-y"])
-        df = load_data(train_X_fn, train_y_fn)
+        df, num_imp, ord_imp, encoder = None, None, None, None
+        if args["--ready"] is None:
+            train_X_fn = Path(args["--train-x"])
+            train_y_fn = Path(args["--train-y"])
+            df = load_data(train_X_fn, train_y_fn)
 
-        df, num_imp, ord_imp, encoder = parse_features(df)
+            df, num_imp, ord_imp, encoder = parse_features(df)
+
+            if args['--parsed'] is not None:
+                parsed_fn = Path(args['--parsed'])
+                df.to_csv(parsed_fn, index=False)
+        else:
+            ready_fn = Path(args["--ready"])
+            df = pd.read_csv(ready_fn)
 
         mlb = MultiLabelBinarizer()
         transformed_y = mlb.fit_transform(df["אבחנה-Location of distal metastases"])
         transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
+
         result = pd.concat([df, transformed_y_df], axis=1).drop(
             ["אבחנה-Location of distal metastases"], axis=1)
-
         a = result.describe()
-        if args['--parsed'] is not None:
-            parsed_fn = Path(args['--parsed'])
-            result.to_csv(parsed_fn, index=False)
+        if args['pred']:
+            model = RandomForestClassifier()
+            model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1),
+                      transformed_y_df)
 
-        if args['baseline']:
-            baseline = DecisionTreeClassifier(max_depth=2)
-            baseline.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)
+            train_X_fn = Path(args["--test-x"])
+            features = pd.read_csv(train_X_fn, parse_dates=[
+                "אבחנה-Diagnosis date",
+                "אבחנה-Surgery date1",
+                "אבחנה-Surgery date2",
+                "אבחנה-Surgery date3",
+                "surgery before or after-Activity date"
+            ], infer_datetime_format=True, dayfirst=True)
+
+            features, num_imp, ord_imp, encoder = parse_features(features, num_imp, ord_imp, encoder)
+            pred = model.predict(features)
+            out_path = Path(args["--out"])
+            combined = pd.DataFrame(
+                {"אבחנה-Location of distal metastases": mlb.inverse_transform(pred)}
+            )
+            combined.to_csv(path_or_buf=out_path, index=False)
+        if args['baseline'] or args['test']:
+            model = None
+            if args['baseline']:
+                baseline = DecisionTreeClassifier(max_depth=2)
+                baseline.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)
+                model = baseline
+            else:
+                model = RandomForestClassifier()
+                model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)
 
             train_X_fn = Path(args["--test-x"])
             train_y_fn = Path(args["--test-y"])
@@ -241,11 +275,11 @@ if __name__ == '__main__':
             df = load_data(train_X_fn, train_y_fn)
 
             df, num_imp, ord_imp, encoder = parse_features(df, num_imp, ord_imp, encoder)
+            pred = model.predict(df.drop(["אבחנה-Location of distal metastases"], axis=1))
 
-            transformed_y = mlb.transform( df["אבחנה-Location of distal metastases"])
+            transformed_y = mlb.transform(df["אבחנה-Location of distal metastases"])
             transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
 
-            pred = baseline.predict(df.drop(["אבחנה-Location of distal metastases"], axis=1))
             mcm = multilabel_confusion_matrix(transformed_y_df, pred)
 
             out_path = Path(args["--out"])
@@ -267,13 +301,4 @@ if __name__ == '__main__':
             print("## f1_micro ##")
             print(np.mean(scores["test_f1_micro"]))
             print(scores["test_f1_micro"])
-
-
-
-
-        # PCA::::
-        # pca = PCA(n_components=2)
-        # tran_pca = pca.fit_transform(df.drop(["אבחנה-Location of distal metastases"], axis=1))
-        # fig = px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=(transformed_y_df.any(axis=1)))
-        # fig.show()
 
