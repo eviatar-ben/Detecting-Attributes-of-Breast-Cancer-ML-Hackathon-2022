@@ -38,6 +38,7 @@ def handle_dates_features(df):
     df = df[df['אבחנה-Surgery date1'] != 'Unknown']
     df = df[df['אבחנה-Surgery date2'] != 'Unknown']
     df = df[df['אבחנה-Surgery date3'] != 'Unknown']
+    df.reset_index()
 
     # 'diagnosis_and_surgery_days_dif'  # 33-7
     dif = pd.to_datetime(df['אבחנה-Diagnosis date']) - pd.to_datetime(df['surgery before or after-Activity date'])

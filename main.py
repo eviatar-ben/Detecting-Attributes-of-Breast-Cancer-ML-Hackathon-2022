@@ -4,7 +4,8 @@
 Options:
   --help                           Show this message and exit
 """
-from pandas import CategoricalDtype
+from pandas import CategoricalDtype     # TODO: pd.CategoricalDtype instead
+from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
 from docopt import docopt
 from pathlib import Path
@@ -15,6 +16,9 @@ import numpy as np
 from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
 from preprocessor import *
 from explore_data import *
+import plotly.graph_objects as go
+import plotly.express as px
+
 
 def load_data(train_X_fn: Path, train_y_fn: Path):
     features = pd.read_csv(train_X_fn, parse_dates=[
@@ -131,6 +135,9 @@ def handle_ordered_categories(df: pd.DataFrame) -> Iterable[SimpleImputer]:
     )
     df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
 
+    cat_columns = df.select_dtypes(['category']).columns
+    df[cat_columns] = df[cat_columns].apply(lambda x: x.cat.codes)
+
     return [base_stage_imputer, hist_deg_imputer, hist_deg_imputer, m_mark_imputer]
 
 
@@ -159,7 +166,7 @@ if __name__ == '__main__':
 
         drop_cols(df, ['User Name',
                        'אבחנה-Her2',
-                       'אבחנה-Ivi -Lymphovascular invasion',  # TODO
+                       'אבחנה-Ivi -Lymphovascular invasion',
                        'אבחנה-KI67 protein',        # TODO
                        'אבחנה-N -lymph nodes mark (TNM)',  # TODO
                        'אבחנה-Side',
@@ -188,5 +195,11 @@ if __name__ == '__main__':
         result = pd.concat([df, transformed_y_df], axis=1).drop(
             ["אבחנה-Location of distal metastases"], axis=1)
 
-        a = df.describe()
+        a = result.describe()
+
+        pca = PCA(n_components=2)
+        pca.fit(result)
+        tran_pc = pca.transform(result)
+        fig = px.scatter(x=tran_pc[:,0], y=tran_pc[:,1], color=result['אבחנה-Basic stage'])
+        fig.show()
 
