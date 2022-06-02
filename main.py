@@ -13,6 +13,7 @@ from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
 from sklearn.cluster import SpectralClustering
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LinearRegression
 from sklearn.impute import SimpleImputer
 from docopt import docopt
 from pathlib import Path
@@ -20,7 +21,7 @@ import logging
 import pandas as pd
 from typing import Tuple, Iterable
 import numpy as np
-from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
 from sklearn.tree import DecisionTreeClassifier
@@ -141,23 +142,6 @@ def handle_ordered_categories(df: pd.DataFrame, imputers=None) -> Iterable[Simpl
         df[["אבחנה-Lymphatic penetration"]]
     )
     df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
-
-    # m_mark_cat = CategoricalDtype(
-    #     categories=['M0', 'M1'],  # TODO: MX? NYE?
-    #     ordered=True
-    # )
-    #
-    # df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].mask(
-    #     ((df["אבחנה-M -metastases mark (TNM)"] == 'M1a') |
-    #      (df["אבחנה-M -metastases mark (TNM)"] == 'M1b')), 'M1'
-    # ).astype(m_mark_cat)
-    #
-    # df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
-    # m_mark_imputer = SimpleImputer(strategy="most_frequent")
-    # df["אבחנה-M -metastases mark (TNM)"] = m_mark_imputer.fit_transform(
-    #     df[["אבחנה-M -metastases mark (TNM)"]]
-    # )
-    # df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
 
     cat_columns = df.select_dtypes(['category']).columns
     df[cat_columns] = df[cat_columns].apply(lambda x: x.cat.codes)
@@ -289,7 +273,7 @@ def part_1(args):
         features = df.drop(["אבחנה-Location of distal metastases"], axis=1)
         labels = transformed_y_df
         splits = int(args["--cv"])
-        model = RandomForestClassifier(ccp_alpha=0.0001)
+        model = RandomForestClassifier()
         scores = cross_validate(model, features, labels, cv=splits,
                                 scoring=['f1_micro', 'f1_macro'],
                                 return_train_score=True,
@@ -303,7 +287,92 @@ def part_1(args):
 
 
 def part_2(args):
-    pass
+    train_X_fn = Path(args["--train-x"])
+    train_y_fn = Path(args["--train-y"])
+    labels = pd.read_csv(train_y_fn)
+
+    df = pd.read_csv(train_X_fn, parse_dates=[
+        "אבחנה-Diagnosis date",
+        "אבחנה-Surgery date1",
+        "אבחנה-Surgery date2",
+        "אבחנה-Surgery date3",
+        "surgery before or after-Activity date"
+    ], infer_datetime_format=True, dayfirst=True)
+
+    df, num_imp, ord_imp, encoder = parse_features(df)
+
+
+    if args['--parsed'] is not None:
+        df['אבחנה-Tumor size'] = labels['אבחנה-Tumor size']
+        parsed_fn = Path(args['--parsed'])
+        df.to_csv(parsed_fn, index=False)
+        df.drop(['אבחנה-Tumor size'], axis=1, inplace=True)
+
+    if args['pred']:
+        model = LinearRegression()
+        model.fit(df, labels)
+
+        train_X_fn = Path(args["--test-x"])
+        features = pd.read_csv(train_X_fn, parse_dates=[
+            "אבחנה-Diagnosis date",
+            "אבחנה-Surgery date1",
+            "אבחנה-Surgery date2",
+            "אבחנה-Surgery date3",
+            "surgery before or after-Activity date"
+        ], infer_datetime_format=True, dayfirst=True)
+
+        features, num_imp, ord_imp, encoder = parse_features(features, num_imp,
+                                                             ord_imp, encoder)
+        pred = model.predict(features)
+        out_path = Path(args["--out"])
+        combined = pd.DataFrame(pred, columns=['אבחנה-Tumor size'])
+        combined.to_csv(path_or_buf=out_path, index=False)
+
+    if args['baseline'] or args['test']:
+        model = None
+        if args['baseline']:
+            model = LinearRegression()
+            model.fit(df, labels)
+        else:
+            model = LinearRegression()
+            model.fit(df, labels)
+
+        train_X_fn = Path(args["--test-x"])
+        train_y_fn = Path(args["--test-y"])
+
+        labels = pd.read_csv(train_y_fn)
+
+        df = pd.read_csv(train_X_fn, parse_dates=[
+            "אבחנה-Diagnosis date",
+            "אבחנה-Surgery date1",
+            "אבחנה-Surgery date2",
+            "אבחנה-Surgery date3",
+            "surgery before or after-Activity date"
+        ], infer_datetime_format=True, dayfirst=True)
+
+        df, num_imp, ord_imp, encoder = parse_features(df, num_imp, ord_imp,
+                                                       encoder)
+        pred = model.predict(df)
+
+        mcm = confusion_matrix(labels, pred)
+
+        out_path = Path(args["--out"])
+        combined = pd.DataFrame(pred, columns=['אבחנה-Tumor size'])
+        combined.to_csv(path_or_buf=out_path, index=False)
+
+    if args["--cv"] is not None:
+        splits = int(args["--cv"])
+        model = LinearRegression()
+        scores = cross_validate(model, df, labels, cv=splits,
+                                scoring=['f1_micro', 'f1_macro'],
+                                return_train_score=True,
+                                return_estimator=True)
+        print("## f1_macro ##")
+        print(np.mean(scores["test_f1_macro"]))
+        print(scores["test_f1_macro"])
+        print("## f1_micro ##")
+        print(np.mean(scores["test_f1_micro"]))
+        print(scores["test_f1_micro"])
 
 
 def part_3(args):
