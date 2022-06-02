@@ -68,6 +68,7 @@ def handle_numerical(df: pd.DataFrame, imputers=None) -> Iterable[SimpleImputer]
         (df['אבחנה-Surgery date3'].notna()),
         inplace=True
     )
+    df['אבחנה-Surgery sum'] = df['אבחנה-Surgery sum'].astype(float)
 
     df['אבחנה-Nodes exam'].fillna(0, inplace=True)
     df['אבחנה-Positive nodes'].mask(
@@ -277,16 +278,17 @@ def part_1(args):
     # Evaluate cross validation:
     if args["--cv"] is not None:
         features = df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float)
-        labels = transformed_y_df.astype(float)
+        labels = transformed_y_df
         splits = int(args["--cv"])
 
         models = [RandomForestClassifier()]
         models += [i for i in multi(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)]
         for model in models:
-            scores = cross_validate(model, features, labels, cv=splits,
+            scores = cross_validate(model, features, labels, cv=KFold(n_splits=splits, shuffle=True),
                                     scoring=['f1_micro', 'f1_macro'],
                                     return_train_score=True,
                                     return_estimator=True)
+            print(model)
             print("## f1_macro ##")
             print(np.mean(scores["test_f1_macro"]))
             print(scores["test_f1_macro"])
