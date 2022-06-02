@@ -173,7 +173,7 @@ def handle_ki67(df):
 
 
 def main():
-    df = pd.read_csv(r'splited_datasets/features_train_base_0.csv', parse_dates=[
+    df = pd.read_csv(r'/train.feats.csv', parse_dates=[
         "אבחנה-Diagnosis date",
         "אבחנה-Surgery date1",
         "אבחנה-Surgery date2",
