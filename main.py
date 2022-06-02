@@ -169,7 +169,7 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     num_imp = handle_numerical(df, num_imp)
     # df = handle_dates_features(df)
     df, encoder = handle_categorical_cols(df, encoder)
-    # df = handle_ki67(df)
+    df = handle_ki67(df)
     df = handle_ivi(df)
     preprocessing(df)
     ord_imp = handle_ordered_categories(df, ord_imp)
@@ -177,7 +177,7 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     drop_cols(df, ['User Name',
                    'אבחנה-Her2',
                    # 'אבחנה-Ivi -Lymphovascular invasion',
-                   'אבחנה-KI67 protein',  # TODO
+                   # 'אבחנה-KI67 protein',  # TODO
                    'אבחנה-N -lymph nodes mark (TNM)',
                    'אבחנה-Side',
                    'אבחנה-Stage',
@@ -201,6 +201,8 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    ])
     return df, num_imp, ord_imp, encoder
 
+# part1 --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_base_0.csv --test-y=splited_datasets/labels_test_base_0.csv --out="baseline_pred.csv"
+# python3 evaluate_part_0.py --gold=./splited_datasets/labels_test_base_0.csv --pred=./baseline_pred.csv
 if __name__ == '__main__':
     np.random.seed(0)
     args = docopt(__doc__)
@@ -232,10 +234,8 @@ if __name__ == '__main__':
 
             df, num_imp, ord_imp, encoder = parse_features(df, num_imp, ord_imp, encoder)
 
-            transformed_y = mlb.transform(
-                df["אבחנה-Location of distal metastases"])
-            transformed_y_df = pd.DataFrame(transformed_y,
-                                            columns=mlb.classes_)
+            transformed_y = mlb.transform( df["אבחנה-Location of distal metastases"])
+            transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
 
             pred = baseline.predict(df.drop(["אבחנה-Location of distal metastases"], axis=1))
             mcm = multilabel_confusion_matrix(transformed_y_df, pred)
