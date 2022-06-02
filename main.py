@@ -190,7 +190,7 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    'אבחנה-Surgery date3',
                    'surgery before or after-Activity date',
                    'אבחנה-Diagnosis date',
-                   ' Form Name',
+                   # ' Form Name',
                    ])
     return df, num_imp, ord_imp, encoder
 
@@ -433,7 +433,7 @@ def part_3(args):
 # part1 --cv=5 --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv
 # python3 evaluate_part_0.py --gold=./splited_datasets/labels_test_base_0.csv --pred=./baseline_pred.csv
 # part1 --cv=8 --train-x=train.feats.csv --train-y=train.labels.0.csv
-# part1 test --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_0.csv --test-y=splited_datasets/labels_test_0.csv --out=./val_pred.csv
+# part1 pred --train-x=splited_datasets/X_train.csv --train-y=splited_datasets/y_train.csv --test-x=splited_datasets/X_test.csv --out=./new_val_pred.csv
 if __name__ == '__main__':
     args = docopt(__doc__)
     print(args)
