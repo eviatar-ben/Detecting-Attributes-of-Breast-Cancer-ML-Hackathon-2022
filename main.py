@@ -190,12 +190,14 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
 
 
 def part_1(args):
+    # Parse train:
     train_X_fn = Path(args["--train-x"])
     train_y_fn = Path(args["--train-y"])
     df = load_data(train_X_fn, train_y_fn)
 
     df, num_imp, ord_imp, encoder = parse_features(df)
 
+    # Save parsed data
     if args['--parsed'] is not None:
         parsed_fn = Path(args['--parsed'])
         df.to_csv(parsed_fn, index=False)
@@ -205,6 +207,7 @@ def part_1(args):
         df["אבחנה-Location of distal metastases"])
     transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
 
+    # Make prediction:
     if args['pred']:
         model = RandomForestClassifier()
         model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1),
@@ -228,6 +231,8 @@ def part_1(args):
                 pred)}
         )
         combined.to_csv(path_or_buf=out_path, index=False)
+
+    # Evaluate test:
     if args['baseline'] or args['test']:
         model = None
         if args['baseline']:
@@ -262,24 +267,28 @@ def part_1(args):
                                     "אבחנה-Location of distal metastases": mlb.inverse_transform(
                                         pred)})
         combined.to_csv(path_or_buf=out_path, index=False)
+
+    # Evaluate cross validation:
     if args["--cv"] is not None:
         features = df.drop(["אבחנה-Location of distal metastases"], axis=1)
         labels = transformed_y_df
         splits = int(args["--cv"])
-        model = RandomForestClassifier()
-        scores = cross_validate(model, features, labels, cv=splits,
-                                scoring=['f1_micro', 'f1_macro'],
-                                return_train_score=True,
-                                return_estimator=True)
-        print("## f1_macro ##")
-        print(np.mean(scores["test_f1_macro"]))
-        print(scores["test_f1_macro"])
-        print("## f1_micro ##")
-        print(np.mean(scores["test_f1_micro"]))
-        print(scores["test_f1_micro"])
+        models = [RandomForestClassifier()]
+        for model in models:
+            scores = cross_validate(model, features, labels, cv=splits,
+                                    scoring=['f1_micro', 'f1_macro'],
+                                    return_train_score=True,
+                                    return_estimator=True)
+            print("## f1_macro ##")
+            print(np.mean(scores["test_f1_macro"]))
+            print(scores["test_f1_macro"])
+            print("## f1_micro ##")
+            print(np.mean(scores["test_f1_micro"]))
+            print(scores["test_f1_micro"])
 
 
 def part_2(args):
+    # Parse train:
     train_X_fn = Path(args["--train-x"])
     train_y_fn = Path(args["--train-y"])
     labels = pd.read_csv(train_y_fn)
@@ -294,13 +303,14 @@ def part_2(args):
 
     df, num_imp, ord_imp, encoder = parse_features(df)
 
-
+    # Save trained model:  TODO: load trained model - requires saving the dtypes?
     if args['--parsed'] is not None:
         df['אבחנה-Tumor size'] = labels['אבחנה-Tumor size']
         parsed_fn = Path(args['--parsed'])
         df.to_csv(parsed_fn, index=False)
         df.drop(['אבחנה-Tumor size'], axis=1, inplace=True)
 
+    # Make prediction:
     if args['pred']:
         model = LinearRegression()
         model.fit(df, labels)
@@ -321,6 +331,7 @@ def part_2(args):
         combined = pd.DataFrame(pred, columns=['אבחנה-Tumor size'])
         combined.to_csv(path_or_buf=out_path, index=False)
 
+    # Test:
     if args['baseline'] or args['test']:
         model = None
         if args['baseline']:
@@ -353,6 +364,7 @@ def part_2(args):
         combined = pd.DataFrame(pred, columns=['אבחנה-Tumor size'])
         combined.to_csv(path_or_buf=out_path, index=False)
 
+    # Test using cross validation
     if args["--cv"] is not None:
         splits = int(args["--cv"])
         model = LinearRegression()
@@ -369,7 +381,21 @@ def part_2(args):
 
 
 def part_3(args):
-    pass
+    train_X_fn = Path(args["--train-x"])
+    df = pd.read_csv(train_X_fn, parse_dates=[
+        "אבחנה-Diagnosis date",
+        "אבחנה-Surgery date1",
+        "אבחנה-Surgery date2",
+        "אבחנה-Surgery date3",
+        "surgery before or after-Activity date"
+    ], infer_datetime_format=True, dayfirst=True)
+
+    df, num_imp, ord_imp, encoder = parse_features(df)
+    # PCA::::
+    pca = PCA(n_components=2)
+    tran_pca = pca.fit_transform(df.drop(["אבחנה-Location of distal metastases"], axis=1))
+    fig = px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=df['אבחנה-Stage'])
+    fig.show()
 
 
 # part1 baseline --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_base_0.csv --test-y=splited_datasets/labels_test_base_0.csv --out="baseline_pred.csv" --parsed=./parsed_base_0.csv --seed=0
