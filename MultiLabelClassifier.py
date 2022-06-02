@@ -44,7 +44,8 @@ def build_model(model, mlb_estimator, X_train, y_train):
     # scaler = MinMaxScaler()
     # X_train = scaler.fit_transform(X_train)
     clf = mlb_estimator(model)
-    clf.fit(X_train, y_train)
+    # clf.fit(X_train, y_train)
+    return clf
 
 
 def get_models(X_train, y_train):

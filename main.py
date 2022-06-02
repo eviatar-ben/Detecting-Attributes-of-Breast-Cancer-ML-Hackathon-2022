@@ -9,6 +9,7 @@ Options:
   --help                           Show this message and exit
   --seed=SEED                       [default: 0]
 """
+import tqdm
 from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
 from sklearn.cluster import SpectralClustering
 from sklearn.decomposition import PCA
@@ -191,7 +192,7 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
 
 def multi(X_train, y_train):
     import MultiLabelClassifier
-    X_train = np.array(pd.DataFrame.to_numpy(X_train), dtype=float)
+    # X_train = np.array(pd.DataFrame.to_numpy(X_train), dtype=float)
     return MultiLabelClassifier.get_models(X_train, y_train)
 
 def part_1(args):
@@ -211,8 +212,6 @@ def part_1(args):
     transformed_y = mlb.fit_transform(
         df["אבחנה-Location of distal metastases"])
     transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
-
-    multi(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)
 
     # Make prediction:
     if args['pred']:
@@ -277,10 +276,12 @@ def part_1(args):
 
     # Evaluate cross validation:
     if args["--cv"] is not None:
-        features = df.drop(["אבחנה-Location of distal metastases"], axis=1)
-        labels = transformed_y_df
+        features = df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float)
+        labels = transformed_y_df.astype(float)
         splits = int(args["--cv"])
+
         models = [RandomForestClassifier()]
+        models += [i for i in multi(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)]
         for model in models:
             scores = cross_validate(model, features, labels, cv=splits,
                                     scoring=['f1_micro', 'f1_macro'],
