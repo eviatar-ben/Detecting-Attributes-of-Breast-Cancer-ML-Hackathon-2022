@@ -18,6 +18,8 @@ from typing import Tuple, Iterable
 import numpy as np
 from sklearn.metrics import multilabel_confusion_matrix
 from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
+from sklearn.tree import DecisionTreeClassifier
+
 from preprocessor import *
 from explore_data import *
 import plotly.graph_objects as go
@@ -164,6 +166,7 @@ def handle_side(df: pd.DataFrame):
 
 
 if __name__ == '__main__':
+    np.random.seed(0)
     args = docopt(__doc__)
     print(args)
     if args["part1"]:
@@ -217,7 +220,7 @@ if __name__ == '__main__':
         a = result.describe()
 
         if args['--test-y'] is not None:
-            baseline = RandomForestClassifier()
+            baseline = DecisionTreeClassifier(max_depth=2)
             baseline.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1), transformed_y_df)
 
             train_X_fn = Path(args["--test-x"])
