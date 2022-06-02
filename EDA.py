@@ -11,12 +11,12 @@ def eda():
 
     X_train_base, X_test_base, y_train_base, y_test_base = train_test_split(X_train, y_train)
 
-    y_test.to_csv("splited_datasets/y_test1")
-    X_test.to_csv("splited_datasets/X_test1")
-    X_train_base.to_csv("splited_datasets/X_train_base1")
-    y_train_base.to_csv("splited_datasets/y_train_base1")
-    X_test_base.to_csv("splited_datasets/X_test_base1")
-    y_test_base.to_csv("splited_datasets/y_test_base1")
+    y_test.to_csv("splited_datasets/y_test1.csv", index=False)
+    X_test.to_csv("splited_datasets/X_test1.csv", index=False)
+    X_train_base.to_csv("splited_datasets/X_train_base1.csv", index=False)
+    y_train_base.to_csv("splited_datasets/y_train_base1.csv", index=False)
+    X_test_base.to_csv("splited_datasets/X_test_base1.csv", index=False)
+    y_test_base.to_csv("splited_datasets/y_test_base1.csv", index=False)
 
 
 if __name__ == '__main__':
