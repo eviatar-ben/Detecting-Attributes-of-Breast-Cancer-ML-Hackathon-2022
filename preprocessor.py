@@ -81,7 +81,6 @@ def handle_ivi(df):
         last = cur | last
     df['neg_ivi'] = last
 
-    drop_cols(df, ['אבחנה-Ivi -Lymphovascular invasion'])
     return df
 
 

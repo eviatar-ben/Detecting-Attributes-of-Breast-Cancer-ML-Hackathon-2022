@@ -29,7 +29,7 @@ from sklearn.model_selection import KFold, cross_validate, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
 from sklearn.tree import DecisionTreeClassifier
-from skmultilearn.problem_transform import LabelPowerset
+from skmultilearn.problem_transform import LabelPowerset, ClassifierChain
 
 from MultiLabelClassifier import build_model
 from preprocessor import *
@@ -165,6 +165,7 @@ def handle_side(df: pd.DataFrame):
 
 
 def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
+    a = num_imp is None
     num_imp = handle_numerical(df, num_imp)
     # df = handle_dates_features(df)
     df, encoder = handle_categorical_cols(df, encoder)
@@ -173,9 +174,9 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     preprocessing(df)
     ord_imp = handle_ordered_categories(df, ord_imp)
 
-    handle_side(df)
+    # handle_side(df)
     drop_cols(df, ['אבחנה-Histological diagnosis',
-                   # 'אבחנה-Ivi -Lymphovascular invasion',
+                   'אבחנה-Ivi -Lymphovascular invasion',
                    # 'אבחנה-KI67 protein',
                    # 'User Name',
                    'אבחנה-Her2',
@@ -207,7 +208,39 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    'אבחנה-Margin Type'
                    ])
 
-    # df = df[["אבחנה-Location of distal metastases"]]
+    # if a:
+    #     df = df[[
+    #         "אבחנה-Location of distal metastases",
+    #         "אבחנה-Age",
+    #         'neg_ivi',
+    #         'pos_ivi',
+    #         'Her2_processed',
+    #         'er_processed',
+    #         'pr_processed',
+    #         'lymph nodes mark processed',
+    #         'metastases mark processed',
+    #         'Tumor mark processed',
+    #         'time from first surgery processed',
+    #         'time from second surgery processed',
+    #         'time from third surgery processed',
+    #         'אבחנה-Surgery sum'
+    #     ]]
+    # else:
+    #     df = df[[
+    #         "אבחנה-Age",
+    #         'neg_ivi',
+    #         'pos_ivi',
+    #         'Her2_processed',
+    #         'er_processed',
+    #         'pr_processed',
+    #         'lymph nodes mark processed',
+    #         'metastases mark processed',
+    #         'Tumor mark processed',
+    #         'time from first surgery processed',
+    #         'time from second surgery processed',
+    #         'time from third surgery processed',
+    #         'אבחנה-Surgery sum'
+    #     ]]
     return df, num_imp, ord_imp, encoder
 
 
@@ -236,6 +269,7 @@ def part_1(args):
     transformed_y = mlb.fit_transform(
         df["אבחנה-Location of distal metastases"])
     transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
+    transformed_y_df = transformed_y_df[['ADR - Adrenals']]
     # df = pd.concat([df, transformed_y_df], axis=1)
     # Make prediction:
     if args['pred']:
@@ -310,12 +344,17 @@ def part_1(args):
         splits = int(args["--cv"])
 
         models = [
-                DecisionTreeClassifier(max_depth=18),
-                RandomForestClassifier(),
-                  RidgeClassifierCV(),
-                  LabelPowerset(DecisionTreeClassifier()),
-                  LabelPowerset(RandomForestClassifier()),
-                  ]
+            # DecisionTreeClassifier(max_depth=18, class_weight="balanced"),
+            # LabelPowerset(DecisionTreeClassifier(max_depth=18, class_weight="balanced")),
+            # LabelPowerset(DecisionTreeClassifier()),
+            # ClassifierChain(DecisionTreeClassifier(max_depth=18, class_weight="balanced")),
+            ClassifierChain(RandomForestClassifier(class_weight="balanced_subsample")),
+            RandomForestClassifier(class_weight="balanced"),
+            RandomForestClassifier(class_weight="balanced_subsample"),
+            RandomForestClassifier(),
+            # RidgeClassifier(),
+            # LabelPowerset(RandomForestClassifier())
+        ]
         # models += [i for i in multi()]
         for model in models:
             scores = cross_validate(model, features, labels, cv=KFold(n_splits=splits, shuffle=True),
@@ -328,13 +367,11 @@ def part_1(args):
             print(scores["test_f1_macro"])
             print("## f1_macro Train ##")
             print(np.mean(scores["train_f1_macro"]))
-            print(scores["train_f1_macro"])
             print("## f1_micro Test ##")
             print(np.mean(scores["test_f1_micro"]))
             print(scores["test_f1_micro"])
             print("## f1_micro Train ##")
             print(np.mean(scores["train_f1_micro"]))
-            print(scores["train_f1_micro"])
 
 
 def part_2(args):
