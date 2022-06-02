@@ -11,7 +11,16 @@ def preprocessing(features: pd.DataFrame):
 
     features["pr_processed"] = features["אבחנה-pr"].apply(processing_err)
 
+    features["lymph nodes mark processed"] = \
+        features["אבחנה-N -lymph nodes mark (TNM)"].fillna("NX").apply(processing_TNM, args="n")
 
+    features["metastases mark processed"] = \
+        features["אבחנה-M -metastases mark (TNM)"].fillna("MX").apply(processing_TNM, args="m")
+
+    features["Tumor mark processed"] = \
+        features["אבחנה-T -Tumor mark (TNM)"].fillna("TX").apply(processing_TNM, args="t")
+
+    features["stage processed"] = features["אבחנה-Stage"].fillna("ex").apply(processing_TNM, args="e")
 
 
 r_num = "\d+\.*\d*"
@@ -22,6 +31,18 @@ r_percent = "%"
 r_pos = "jhuch|חיובי|po|\+|strong|weak|חזק|חלש"
 r_mid = "equi|\?|inde|inter|בינוני"
 r_zero = "[0_o\)]"
+
+
+def processing_TNM(string, char):
+    r_tnm = fr"{char}\d"
+    match = re.findall(r_tnm, string, re.IGNORECASE)
+
+    if match:
+        return int(match[0][1])
+    elif string == "MF" or string == "Tis":
+        return 1
+
+    return -10
 
 
 def processing_err(string):
