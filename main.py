@@ -191,10 +191,11 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     return df, num_imp, ord_imp, encoder
 
 
-def multi(X_train, y_train):
+def multi():
     import MultiLabelClassifier
     # X_train = np.array(pd.DataFrame.to_numpy(X_train), dtype=float)
     return MultiLabelClassifier.get_models(X_train, y_train)
+
 
 def part_1(args):
     # Parse train:
@@ -313,7 +314,10 @@ def part_2(args):
 
     df, num_imp, ord_imp, encoder = parse_features(df)
 
+<<<<<<< HEAD
+=======
     # Save trained model:  TODO: load trained model - requires saving the dtypes?
+>>>>>>> 9e91d92ec30d1ef41cf24059322a7a7991d3e5e9
     if args['--parsed'] is not None:
         df['אבחנה-Tumor size'] = labels['אבחנה-Tumor size']
         parsed_fn = Path(args['--parsed'])

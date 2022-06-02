@@ -1,18 +1,12 @@
-# Load EDA Pkgs
 import pandas as pd
 import numpy as np
-
-# Load Data Viz Pkgs
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 # ML Pkgs
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import GaussianNB, MultinomialNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, hamming_loss, classification_report
 
 # Split Dataset into Train and Text
 from sklearn.model_selection import train_test_split
@@ -29,13 +23,6 @@ import skmultilearn
 
 # Convert Our Multi-Label Prob to Multi-Class
 
-# binary classification
-def binary_relevance(X_train, y_train):
-    """ basic approaches to multi-label classification, it ignores relationships between labels
-    correlation between labels are lost """
-    binary_rel_clf = BinaryRelevance(MultinomialNB())
-    binary_rel_clf.fit(X_train, y_train)
-
 
 def build_model(model, mlb_estimator, X_train, y_train):
     # Create an Instance
@@ -45,19 +32,33 @@ def build_model(model, mlb_estimator, X_train, y_train):
     # X_train = scaler.fit_transform(X_train)
     clf = mlb_estimator(model)
     # clf.fit(X_train, y_train)
+
     return clf
 
 
 def get_models(X_train, y_train):
-    # binary_relevance(X_train, y_train)
+    # binary_relevance
+    clf_RF_binary_model = build_model(RandomForestClassifier(), BinaryRelevance, X_train, y_train)
+    clf_KNN_binary_model = build_model(KNeighborsClassifier(), BinaryRelevance, X_train, y_train)
+    clf_LR_binary_model = build_model(LogisticRegression(), BinaryRelevance, X_train, y_train)
+    clf_DR_binary_model = build_model(DecisionTreeClassifier(), BinaryRelevance, X_train, y_train)
+
     # Chains:
-    clf_chain_model = build_model(RandomForestClassifier(), ClassifierChain, X_train, y_train)
+    clf_RF_chain_model = build_model(RandomForestClassifier(), ClassifierChain, X_train, y_train)
+    clf_KNN_chain_model = build_model(KNeighborsClassifier(), ClassifierChain, X_train, y_train)
+    clf_LR_chain_model = build_model(LogisticRegression(), ClassifierChain, X_train, y_train)
+    clf_DR_chain_model = build_model(DecisionTreeClassifier(), ClassifierChain, X_train, y_train)
 
     # PowerSet:
-    clf_labelPS_model = build_model(RandomForestClassifier(), LabelPowerset, X_train, y_train)
+    clf_RF_PowerSet_model = build_model(RandomForestClassifier(), LabelPowerset, X_train, y_train)
+    clf_KNN_PowerSet_model = build_model(KNeighborsClassifier(), LabelPowerset, X_train, y_train)
+    clf_LR_PowerSet_model = build_model(LogisticRegression(), LabelPowerset, X_train, y_train)
+    clf_DR_PowerSet_model = build_model(DecisionTreeClassifier(), LabelPowerset, X_train, y_train)
 
     # return clf_chain_model, clf_labelPS_model
     # --------------------------------------adaptive algorithms: KNN RandomForest --------------------------------------
 
     # -------------------------------------------assemble methods -----------------------------------------------
-    return clf_chain_model, clf_labelPS_model
+    return clf_RF_chain_model, clf_KNN_chain_model, clf_LR_chain_model, clf_DR_chain_model, \
+           clf_RF_PowerSet_model, clf_KNN_PowerSet_model, clf_LR_PowerSet_model, clf_DR_PowerSet_model,\
+           clf_RF_binary_model , clf_KNN_binary_model, clf_LR_binary_model, clf_DR_binary_model
