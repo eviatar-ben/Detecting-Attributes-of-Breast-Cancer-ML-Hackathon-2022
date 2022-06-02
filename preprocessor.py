@@ -85,9 +85,11 @@ def handle_ki67(df):
         words = ['Score 1', 'Score1-2', 'Very Low <3%', 'low-int']
         result = []
         for val in unique_vals:
-            for i in range(1, 20):
-                if str(i) in val:
-                    result.append(val)
+            if type(val) is str:
+
+                for i in range(1, 20):
+                    if str(i) in val:
+                        result.append(val)
         unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
@@ -95,18 +97,22 @@ def handle_ki67(df):
         words = ['score1-2', 'score 2', 'Score 2', 'Score II']
         result = []
         for val in unique_vals:
-            for i in range(20, 50):
-                if str(i) in val:
-                    result.append(val)
+            if type(val) is str:
+
+                for i in range(20, 50):
+                    if str(i) in val:
+                        result.append(val)
         unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
     def get_medium_high():
         result = []
         for val in unique_vals:
-            for i in range(50, 70):
-                if str(i) in val:
-                    result.append(val)
+            if type(val) is str:
+
+                for i in range(50, 70):
+                    if str(i) in val:
+                        result.append(val)
         unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
@@ -114,14 +120,15 @@ def handle_ki67(df):
         words = ['score 3-4', 'score 3', 'High', 'Score 4', 'high', 'HIGH']
         result = []
         for val in unique_vals:
-            for i in range(70, 100):
-                if str(i) in val:
-                    result.append(val)
-        unique_values_minus_result = [val for val in unique_vals if val not in result]
+            if type(val) is str:
+                for i in range(70, 100):
+                    if str(i) in val:
+                        result.append(val)
+            unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
     # utilities.present_unique_values(df, 'אבחנה-KI67 protein')
-    unique_vals = df['אבחנה-KI67 protein'].unique()[1:]
+    unique_vals = df['אבחנה-KI67 protein'].unique()
     high, unique_vals = get_high()
     medium_high, unique_vals = get_medium_high()
     medium, unique_vals = get_medium()
@@ -153,13 +160,13 @@ def handle_ki67(df):
 
     # todo: decide based on correlation nan values
     nan_idx = df[df['אבחנה-KI67 protein'].isnull()].index.tolist()
-    df['אבחנה-KI67 protein'][nan_idx] = 10
+    df.loc[nan_idx, 'אבחנה-KI67 protein'] = 10
 
     # todo: handle with values that not appears in the list ahead
     union_idx = {*low_indices, *medium_indices, *medium_high_indices, *high_indices, *nan_idx}
     different_values = [i for i in range(len(df['אבחנה-KI67 protein'])) if i not in union_idx]
 
-    df['אבחנה-KI67 protein'][different_values] = 20
+    df.loc[different_values, 'אבחנה-KI67 protein'] = 20
 
     return df
 
