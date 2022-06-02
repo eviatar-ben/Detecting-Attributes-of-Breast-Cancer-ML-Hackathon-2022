@@ -64,7 +64,7 @@ def handle_dates_features(df):
 
 
 def handle_ivi(df):
-    utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
+    # utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
     positive_val = ['yes', '+', 'extensive', 'pos', 'MICROPAPILLARY VARIANT', '(+)']
     negative_val = ['not', 'none', 'neg', 'no', '-', '(-)', 'NO', 'No']
 
@@ -151,7 +151,7 @@ def handle_ki67(df):
             unique_values_minus_result = [val for val in unique_vals if val not in result]
         return result, unique_values_minus_result
 
-    utilities.present_unique_values(df, 'אבחנה-KI67 protein')
+    # utilities.present_unique_values(df, 'אבחנה-KI67 protein')
     unique_vals = df['אבחנה-KI67 protein'].unique()
     high, unique_vals = get_high()
     medium_high, unique_vals = get_medium_high()
