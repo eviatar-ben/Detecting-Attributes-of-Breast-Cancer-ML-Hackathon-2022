@@ -312,10 +312,7 @@ def part_2(args):
 
     df, num_imp, ord_imp, encoder = parse_features(df)
 
-<<<<<<< HEAD
-=======
-    # Save trained model:  TODO: load trained model - requires saving the dtypes?
->>>>>>> 9e91d92ec30d1ef41cf24059322a7a7991d3e5e9
+
     if args['--parsed'] is not None:
         df['אבחנה-Tumor size'] = labels['אבחנה-Tumor size']
         parsed_fn = Path(args['--parsed'])
