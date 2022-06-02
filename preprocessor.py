@@ -82,40 +82,86 @@ def handle_ivi(df):
 
 
 def handle_ki67(df):
-    # utilities.present_unique_values(df, 'אבחנה-KI67 protein')
-    low = ['6-9%', '15%', '20', '20%', '6%-9%', 'score 3-4', '15-20%', '10%', '5% vs 16-30%', '10', '9', '5%', '8-15%',
-           '1', '<5%', '15', '4%', '1%', '5-10%', '10-14%', '10-15%', '15-30%', '3%', '2%', '1-2%', '10-20%', '06-Sep',
-           '03-May', '5', '5-9%']
-    medium = [
-        '50', '45%', '455', '40%', '30%', '40=50%', '50%', '20-30%', '30', '10-49%', '30-50%', '45', '40', '50% score4',
-        'score 3', '49%', '40-50%', '25%', '30-40%', '35%', '30-35%',
-        'score3 20-30%']
-    medium_high = ['60', '60%', '50-60%', '70', '50-70%', '+>50%', '60-70%']
-    high = ['90%', '80%', '70%', '90', '95%', '75%', '80-90%', '85%', 'High', 'Score 4']
+    def get_low():
+        words = ['Score 1', 'Score1-2', 'Very Low <3%', 'low-int']
+        result = []
+        for val in unique_vals:
+            for i in range(1, 20):
+                if str(i) in val:
+                    result.append(val)
+        unique_values_minus_result = [val for val in unique_vals if val not in result]
+        return result, unique_values_minus_result
 
+    def get_medium():
+        words = ['score1-2', 'score 2', 'Score 2', 'Score II']
+        result = []
+        for val in unique_vals:
+            for i in range(20, 50):
+                if str(i) in val:
+                    result.append(val)
+        unique_values_minus_result = [val for val in unique_vals if val not in result]
+        return result, unique_values_minus_result
+
+    def get_medium_high():
+        result = []
+        for val in unique_vals:
+            for i in range(50, 70):
+                if str(i) in val:
+                    result.append(val)
+        unique_values_minus_result = [val for val in unique_vals if val not in result]
+        return result, unique_values_minus_result
+
+    def get_high():
+        words = ['score 3-4', 'score 3', 'High', 'Score 4', 'high', 'HIGH']
+        result = []
+        for val in unique_vals:
+            for i in range(70, 100):
+                if str(i) in val:
+                    result.append(val)
+        unique_values_minus_result = [val for val in unique_vals if val not in result]
+        return result, unique_values_minus_result
+
+    # utilities.present_unique_values(df, 'אבחנה-KI67 protein')
+    unique_vals = df['אבחנה-KI67 protein'].unique()[1:]
+    high, unique_vals = get_high()
+    medium_high, unique_vals = get_medium_high()
+    medium, unique_vals = get_medium()
+    low, unique_vals = get_low()
+
+    low_indices = set()
     for val in low:
         cur = df['אבחנה-KI67 protein'] == val
-        indices = cur[cur].index
-        df.loc[indices, 'אבחנה-KI67 protein'] = 20
+        low_indices |= set(cur[cur].index)
+    df.loc[low_indices, 'אבחנה-KI67 protein'] = 20
 
+    medium_indices = set()
     for val in medium:
         cur = df['אבחנה-KI67 protein'] == val
-        indices = cur[cur].index
-        df.loc[indices, 'אבחנה-KI67 protein'] = 40
+        medium_indices |= set(cur[cur].index)
+    df.loc[medium_indices, 'אבחנה-KI67 protein'] = 40
 
+    medium_high_indices = set()
     for val in medium_high:
         cur = df['אבחנה-KI67 protein'] == val
-        indices = cur[cur].index
-        df.loc[indices, 'אבחנה-KI67 protein'] = 60
+        medium_high_indices |= set(cur[cur].index)
+    df.loc[medium_high_indices, 'אבחנה-KI67 protein'] = 60
 
+    high_indices = set()
     for val in high:
         cur = df['אבחנה-KI67 protein'] == val
-        indices = cur[cur].index
-        df.loc[indices, 'אבחנה-KI67 protein'] = 80
+        high_indices |= set(cur[cur].index)
+    df.loc[high_indices, 'אבחנה-KI67 protein'] = 80
 
     # todo: decide based on correlation nan values
     nan_idx = df[df['אבחנה-KI67 protein'].isnull()].index.tolist()
     df['אבחנה-KI67 protein'][nan_idx] = 10
+
+    # todo: handle with values that not appears in the list ahead
+    union_idx = {*low_indices, *medium_indices, *medium_high_indices, *high_indices, *nan_idx}
+    different_values = [i for i in range(len(df['אבחנה-KI67 protein'])) if i not in union_idx]
+
+    df['אבחנה-KI67 protein'][different_values] = 20
+
     return df
 
 
