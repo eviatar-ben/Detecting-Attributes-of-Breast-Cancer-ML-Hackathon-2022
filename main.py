@@ -42,11 +42,13 @@ def handle_numerical(df: pd.DataFrame) -> Iterable[SimpleImputer]:
     # df["אבחנה-Age"] = median_imputer.transform(df["אבחנה-Age"])
     return [median_imputer]
 
-def handle_ordered_categories(df: pd.DataFrame) ->  Iterable[SimpleImputer]:
+
+def handle_ordered_categories(df: pd.DataFrame) -> Iterable[SimpleImputer]:
     ordered_categories = [
-       "אבחנה-Basic stage",  # TODO: switch to unordered - ignore Null?
-       "אבחנה-Histopatological degree",  # TODO: Gx and null in diff columns?
-       "אבחנה-Lymphatic penetration"  # TODO: LI vs L1? Null?
+        "אבחנה-Basic stage",  # TODO: switch to unordered - ignore Null?
+        "אבחנה-Histopatological degree",  # TODO: Gx and null in diff columns?
+        "אבחנה-Lymphatic penetration",  # TODO: LI vs L1? Null?
+        "אבחנה-M -metastases mark (TNM)",  # TODO: differentiate between types of M1?
     ]
     base_stage_cat = CategoricalDtype(
         categories=['c - Clinical', 'p - Pathological', 'r - Reccurent'],
@@ -87,12 +89,29 @@ def handle_ordered_categories(df: pd.DataFrame) ->  Iterable[SimpleImputer]:
         strategy="constant",
         fill_value='L0 - No Evidence of invasion'  # TODO: fill based on other columns
     )
-    # df["אבחנה-Lymphatic penetration"] = hist_deg_imputer.fit_transform(
-    #     df[["אבחנה-Lymphatic penetration"]]
-    # )
-    # df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
+    df["אבחנה-Lymphatic penetration"] = hist_deg_imputer.fit_transform(
+        df[["אבחנה-Lymphatic penetration"]]
+    )
+    df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
 
-    return [base_stage_imputer, hist_deg_imputer, hist_deg_imputer]
+    m_mark_cat = CategoricalDtype(
+        categories=['M0', 'M1'],  # TODO: MX? NYE?
+        ordered=True
+    )
+
+    df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].mask(
+        ((df["אבחנה-M -metastases mark (TNM)"] == 'M1a') |
+         (df["אבחנה-M -metastases mark (TNM)"] == 'M1b')), 'M1'
+    ).astype(m_mark_cat)
+
+    df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
+    m_mark_imputer = SimpleImputer(strategy="most_frequent")
+    df["אבחנה-M -metastases mark (TNM)"] = m_mark_imputer.fit_transform(
+        df[["אבחנה-M -metastases mark (TNM)"]]
+    )
+    df["אבחנה-M -metastases mark (TNM)"] = df["אבחנה-M -metastases mark (TNM)"].astype(m_mark_cat)
+
+    return [base_stage_imputer, hist_deg_imputer, hist_deg_imputer, m_mark_imputer]
 
 
 if __name__ == '__main__':
