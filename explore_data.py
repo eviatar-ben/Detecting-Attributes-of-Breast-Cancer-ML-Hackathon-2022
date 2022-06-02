@@ -20,6 +20,8 @@ def preprocessing(features: pd.DataFrame):
     features["Tumor mark processed"] = \
         features["אבחנה-T -Tumor mark (TNM)"].fillna("TX").apply(processing_TNM, args="t")
 
+    features["stage processed"] = features["אבחנה-Stage"].fillna("ex").apply(processing_TNM, args="e")
+
 
 r_num = "\d+\.*\d*"
 r_neg = "[Hnm,][erf][gfc]|[as][kj][ghj][ka]h|^[-=_]|^n[od]|\(-\)|שלילי"
