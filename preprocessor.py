@@ -11,8 +11,12 @@ def handle_ordered_categorical_cols(df):
 def handle_categorical_cols(df, encoder=None):
     from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
     # 'Form Name'
-    categorical_cols = [' Form Name', ' Hospital', 'אבחנה-Histological diagnosis',
-                        'אבחנה-Margin Type']  # TODO 'אבחנה-Basic stage',
+    categorical_cols = [
+        # ' Form Name',
+        ' Hospital',
+        # 'אבחנה-Histological diagnosis',
+        'אבחנה-Margin Type'
+    ]  # TODO 'אבחנה-Basic stage',
 
     if encoder is None:
         encoder = OneHotEncoder(handle_unknown="ignore", sparse=False)

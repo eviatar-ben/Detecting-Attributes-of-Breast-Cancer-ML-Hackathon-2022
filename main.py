@@ -167,7 +167,8 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     preprocessing(df)
     ord_imp = handle_ordered_categories(df, ord_imp)
     handle_side(df)
-    drop_cols(df, ['User Name',
+    drop_cols(df, ['אבחנה-Histological diagnosis',
+                   'User Name',
                    'אבחנה-Her2',
                    'אבחנה-N -lymph nodes mark (TNM)',
                    'אבחנה-Side',
@@ -189,6 +190,7 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    'אבחנה-Surgery date3',
                    'surgery before or after-Activity date',
                    'אבחנה-Diagnosis date',
+                   ' Form Name',
                    ])
     return df, num_imp, ord_imp, encoder
 
@@ -206,6 +208,8 @@ def part_1(args):
     df = load_data(train_X_fn, train_y_fn)
 
     df, num_imp, ord_imp, encoder = parse_features(df)
+    features = df.drop(["אבחנה-Location of distal metastases"], axis=1).drop_duplicates()
+    df = df.loc[features.index]
 
     # Save parsed data
     if args['--parsed'] is not None:
@@ -252,8 +256,8 @@ def part_1(args):
                 transformed_y_df)
             model = baseline
         else:
-            model = RandomForestClassifier()
-            model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1),
+            model = LabelPowerset(DecisionTreeClassifier())
+            model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float),
                       transformed_y_df)
 
         train_X_fn = Path(args["--test-x"])
@@ -281,43 +285,27 @@ def part_1(args):
     # Evaluate cross validation:
     if args["--cv"] is not None:
         features = df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float)
+        print(features.describe())
         labels = transformed_y_df
         splits = int(args["--cv"])
-        parameters = [
-            # {
-            #     'classifier': [RandomForestClassifier()],
-            #     'classifier__n_estimators': [10, 20, 50, 100],
-            #     'classifier__ccp_alpha': [0, 0.00001, 0.0001, 0.001, 0.01, 0.1,
-            #                               1, 2],
-            # },
-            {
-                'classifier': [DecisionTreeClassifier()],
-                'classifier__ccp_alpha': [0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 2],
-            },
-        ]
 
-        # models = [build_model(DecisionTreeClassifier(), LabelPowerset)]
-        clf = GridSearchCV(LabelPowerset(),
-                           parameters,
-                           cv=KFold(n_splits=splits, shuffle=True),
-                           scoring=['f1_micro', 'f1_macro'],
-                           refit='f1_macro')
-        clf.fit(features, labels)
-        print(clf.cv_results_)
-        # models = [RandomForestClassifier()]
-        # models += [i for i in multi()]
-        # for model in models:
-        #     scores = cross_validate(model, features, labels, cv=splits,  # KFold(n_splits=splits, shuffle=True)
-        #                             scoring=['f1_micro', 'f1_macro'],
-        #                             return_train_score=True,
-        #                             return_estimator=True)
-        #     print(model)
-        #     print("## f1_macro ##")
-        #     print(np.mean(scores["test_f1_macro"]))
-        #     print(scores["test_f1_macro"])
-        #     print("## f1_micro ##")
-        #     print(np.mean(scores["test_f1_micro"]))
-        #     print(scores["test_f1_micro"])
+        models = [LabelPowerset(DecisionTreeClassifier())]
+        for model in models:
+            scores = cross_validate(model, features, labels, cv=splits,  # KFold(n_splits=splits, shuffle=True)
+                                    scoring=['f1_micro', 'f1_macro'],
+                                    return_train_score=True,
+                                    return_estimator=True)
+            print(model)
+            print("## f1_macro ##")
+            print(np.mean(scores["test_f1_macro"]))
+            print(scores["test_f1_macro"])
+            # print(np.mean(scores["train_f1_macro"]))
+            # print(scores["train_f1_macro"])
+            print("## f1_micro ##")
+            print(np.mean(scores["test_f1_micro"]))
+            print(scores["test_f1_micro"])
+            # print(np.mean(scores["train_f1_micro"]))
+            # print(scores["train_f1_micro"])
 
 
 def part_2(args):
@@ -408,9 +396,13 @@ def part_2(args):
         print("## f1_macro ##")
         print(np.mean(scores["test_f1_macro"]))
         print(scores["test_f1_macro"])
+        print(np.mean(scores["train_f1_macro"]))
+        print(scores["train_f1_macro"])
         print("## f1_micro ##")
         print(np.mean(scores["test_f1_micro"]))
         print(scores["test_f1_micro"])
+        print(np.mean(scores["rain_f1_micro"]))
+        print(scores["train_f1_micro"])
 
 
 def part_3(args):
@@ -434,6 +426,7 @@ def part_3(args):
 # part1 baseline --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv --test-x=splited_datasets/features_test_base_0.csv --test-y=splited_datasets/labels_test_base_0.csv --out="baseline_pred.csv" --parsed=./parsed_base_0.csv --seed=0
 # part1 --cv=5 --train-x=splited_datasets/features_train_base_0.csv --train-y=splited_datasets/labels_train_base_0.csv
 # python3 evaluate_part_0.py --gold=./splited_datasets/labels_test_base_0.csv --pred=./baseline_pred.csv
+#part1 --cv=8 --train-x=train.feats.csv --train-y=train.labels.0.csv
 if __name__ == '__main__':
     args = docopt(__doc__)
     print(args)
