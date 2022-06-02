@@ -4,12 +4,12 @@ import re
 import numpy as np
 
 
-def preprocessing():
-    features = pd.read_csv("splited_datasets/features_train_base_0.csv")
+def preprocessing(features: pd.DataFrame):
+    # features = pd.read_csv("splited_datasets/features_train_base_0.csv")
     features["Her2_processed"] = features["אבחנה-Her2"].apply(processing_her2).fillna(0)
-    print(features["אבחנה-er"].unique())
+    # print(features["אבחנה-er"].unique())
 
-    features["er_processed"] = features["אבחנה-er"].apply(processing_err)
+    # features["er_processed"] = features["אבחנה-er"].apply(processing_err)
 
 
 r_num = "\d+\.*\d*"

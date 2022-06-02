@@ -13,8 +13,8 @@ import pandas as pd
 from typing import Tuple, Iterable
 import numpy as np
 from sklearn.preprocessing import OrdinalEncoder
-
-
+from preprocessor import *
+from explore_data import *
 
 def load_data(train_X_fn: Path, train_y_fn: Path):
     features = pd.read_csv(train_X_fn, parse_dates=[
@@ -26,6 +26,8 @@ def load_data(train_X_fn: Path, train_y_fn: Path):
     ], infer_datetime_format=True, dayfirst=True)
     labels = pd.read_csv(train_y_fn)
     full_data = pd.concat([features, labels])
+    full_data = full_data.loc[:, ~full_data.columns.str.contains('^Unnamed')]
+    full_data.reset_index(inplace=True, drop=True)
     return full_data
 
 
@@ -38,6 +40,20 @@ def handle_numerical(df: pd.DataFrame) -> Iterable[SimpleImputer]:
         "אבחנה-Nodes exam",  # TODO:
         "אבחנה-Age",
     ]
+
+    df['אבחנה-Surgery sum'].mask(
+        (df['אבחנה-Surgery sum'].isna()),
+        (df['אבחנה-Surgery date1'].notna()) +
+        (df['אבחנה-Surgery date2'].notna()) +
+        (df['אבחנה-Surgery date3'].notna()),
+        inplace=True
+    )
+
+    df['אבחנה-Nodes exam'].fillna(0, inplace=True)
+    df['אבחנה-Positive nodes'].mask(
+        (df["אבחנה-Positive nodes"].isna()), df['אבחנה-Nodes exam'],
+        inplace=True
+    )
     median_imputer = SimpleImputer(strategy="median")
     df["אבחנה-Age"] = median_imputer.fit_transform(df[["אבחנה-Age"]])
     # df["אבחנה-Age"] = median_imputer.transform(df["אבחנה-Age"])
@@ -115,6 +131,10 @@ def handle_ordered_categories(df: pd.DataFrame) -> Iterable[SimpleImputer]:
     return [base_stage_imputer, hist_deg_imputer, hist_deg_imputer, m_mark_imputer]
 
 
+def handle_side(df: pd.DataFrame):
+    df["Side_right"] = (df["אבחנה-Side"] == 'ימין') | (df["אבחנה-Side"] == 'דו צדדי')
+    df["Side_left"] = (df["אבחנה-Side"] == 'שמאל') | (df["אבחנה-Side"] == 'דו צדדי')
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     # print(args)
@@ -124,8 +144,28 @@ if __name__ == '__main__':
         # test_X_fn = Path(args["--test-x"])
 
         df = load_data(train_X_fn, train_y_fn)
+
         handle_numerical(df)
+        df = handle_dates_features(df)
+        df = handle_categorical_cols(df)
+        preprocessing(df)
+
         handle_ordered_categories(df)
+        handle_side(df)
+
+        drop_cols(df, ['User Name',
+                       'אבחנה-Her2',
+                       'אבחנה-Ivi -Lymphovascular invasion',  # TODO
+                       'אבחנה-KI67 protein',        # TODO
+                       'אבחנה-N -lymph nodes mark (TNM)',  # TODO
+                       'אבחנה-Side',
+                       'אבחנה-Stage',    # TODO
+                       'אבחנה-Surgery name1',   # TODO
+                       'אבחנה-Surgery name2',   # TODO
+                       'אבחנה-Surgery name3',  # TODO
+                       'אבחנה-T -Tumor mark (TNM)',  # TODO
+                       ])
+
         a = df.describe()
         # head = df.head(1000)
         # a = head.describe()
