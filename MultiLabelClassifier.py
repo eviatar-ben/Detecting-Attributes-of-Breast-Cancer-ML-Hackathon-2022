@@ -26,7 +26,7 @@ import skmultilearn
 # Convert Our Multi-Label Prob to Multi-Class
 
 
-def build_model(model, mlb_estimator, X_train, y_train):
+def build_model(model, mlb_estimator):
     # Create an Instance
     from sklearn.preprocessing import MinMaxScaler  # fixed import
 
@@ -38,21 +38,21 @@ def build_model(model, mlb_estimator, X_train, y_train):
     return clf
 
 
-def get_models(X_train, y_train):
+def get_models():
     # binary_relevance
-    clf_RF_binary_model = build_model(RandomForestClassifier(), BinaryRelevance, X_train, y_train)
-    clf_KNN_binary_model = build_model(KNeighborsClassifier(), BinaryRelevance, X_train, y_train)
-    clf_DT_binary_model = build_model(DecisionTreeClassifier(), BinaryRelevance, X_train, y_train)
+    clf_RF_binary_model = build_model(RandomForestClassifier(), BinaryRelevance)
+    clf_KNN_binary_model = build_model(KNeighborsClassifier(), BinaryRelevance)
+    clf_DT_binary_model = build_model(DecisionTreeClassifier(), BinaryRelevance)
 
     # Chains:
-    clf_RF_chain_model = build_model(RandomForestClassifier(), ClassifierChain, X_train, y_train)
-    clf_KNN_chain_model = build_model(KNeighborsClassifier(), ClassifierChain, X_train, y_train)
-    clf_DT_chain_model = build_model(DecisionTreeClassifier(), ClassifierChain, X_train, y_train)
+    clf_RF_chain_model = build_model(RandomForestClassifier(), ClassifierChain)
+    clf_KNN_chain_model = build_model(KNeighborsClassifier(), ClassifierChain)
+    clf_DT_chain_model = build_model(DecisionTreeClassifier(), ClassifierChain)
 
     # PowerSet:
-    clf_RF_PowerSet_model = build_model(RandomForestClassifier(), LabelPowerset, X_train, y_train)
-    clf_KNN_PowerSet_model = build_model(KNeighborsClassifier(), LabelPowerset, X_train, y_train)
-    clf_DT_PowerSet_model = build_model(DecisionTreeClassifier(), LabelPowerset, X_train, y_train)
+    clf_RF_PowerSet_model = build_model(RandomForestClassifier(), LabelPowerset)
+    clf_KNN_PowerSet_model = build_model(KNeighborsClassifier(), LabelPowerset)
+    clf_DT_PowerSet_model = build_model(DecisionTreeClassifier(), LabelPowerset)
 
     # return clf_chain_model, clf_labelPS_model
     # --------------------------------------adaptive algorithms: KNN RandomForest --------------------------------------

@@ -193,7 +193,7 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
 def multi():
     import MultiLabelClassifier
     # X_train = np.array(pd.DataFrame.to_numpy(X_train), dtype=float)
-    return MultiLabelClassifier.get_models(X_train, y_train)
+    return MultiLabelClassifier.get_models()
 
 
 def part_1(args):
