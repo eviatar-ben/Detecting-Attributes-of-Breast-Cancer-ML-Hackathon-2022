@@ -8,11 +8,7 @@ def handle_ordered_categorical_cols(df):
 
 def handle_categorical_cols(df):
     # 'Form Name'
-    df[' Form Name'] = df[' Form Name'].astype('category')
-    # ' Hospital'
-    # todo: consider to drop this col
-    df[' Hospital'] = df[' Hospital'].astype('category')
-    # 'Basic stage
+    categorical_cols = ['Form Name', ' Hospital', 'Basic stage']
 
     # 'Histological Diagnosis
 
