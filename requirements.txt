@@ -10,6 +10,7 @@ GitPython==3.1.27
 idna==3.3
 importlib-metadata==4.11.4
 joblib==1.1.0
+kaleido==0.2.1
 kiwisolver==1.4.2
 matplotlib==3.5.2
 numpy==1.21.6
