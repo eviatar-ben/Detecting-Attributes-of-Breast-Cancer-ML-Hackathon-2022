@@ -8,19 +8,19 @@ def handle_ordered_categorical_cols(df):
     pass
 
 
-def handle_categorical_cols(df, encoder=True):
+def handle_categorical_cols(df, encoder=None):
     from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
     # 'Form Name'
     categorical_cols = [' Form Name', ' Hospital', 'אבחנה-Histological diagnosis',
                         'אבחנה-Margin Type']  # TODO 'אבחנה-Basic stage',
 
-    if encoder:
+    if encoder is None:
         encoder = OneHotEncoder(handle_unknown="ignore", sparse=False)
         encoder.fit(df[categorical_cols])
     transformed = encoder.transform(df[categorical_cols])
     transformed_df = pd.DataFrame(transformed, columns=encoder.get_feature_names_out(categorical_cols))
     result = pd.concat([df, transformed_df], axis=1)
-    return result.drop(categorical_cols, axis=1)
+    return result.drop(categorical_cols, axis=1), encoder
 
 
 def drop_cols(df, cols):
@@ -60,7 +60,7 @@ def handle_dates_features(df):
 
 
 def handle_ivi(df):
-    utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
+    # utilities.present_unique_values(df, col_name='אבחנה-Ivi -Lymphovascular invasion')
     positive_val = ['yes', '+', 'extensive', 'pos', 'MICROPAPILLARY VARIANT', '(+)']
     negative_val = ['not', 'none', 'neg', 'no', '-', '(-)', 'NO', 'No']
 
@@ -82,13 +82,14 @@ def handle_ivi(df):
 
 
 def handle_ki67(df):
-    utilities.present_unique_values(df, 'אבחנה-KI67 protein')
+    # utilities.present_unique_values(df, 'אבחנה-KI67 protein')
     low = ['6-9%', '15%', '20', '20%', '6%-9%', 'score 3-4', '15-20%', '10%', '5% vs 16-30%', '10', '9', '5%', '8-15%',
            '1', '<5%', '15', '4%', '1%', '5-10%', '10-14%', '10-15%', '15-30%', '3%', '2%', '1-2%', '10-20%', '06-Sep',
-           '03-May', '5']
+           '03-May', '5', '5-9%']
     medium = [
         '50', '45%', '455', '40%', '30%', '40=50%', '50%', '20-30%', '30', '10-49%', '30-50%', '45', '40', '50% score4',
-        'score 3', '49%', '40-50%', '25%', '30-40%', '35%', '30-35%']
+        'score 3', '49%', '40-50%', '25%', '30-40%', '35%', '30-35%',
+        'score3 20-30%']
     medium_high = ['60', '60%', '50-60%', '70', '50-70%', '+>50%', '60-70%']
     high = ['90%', '80%', '70%', '90', '95%', '75%', '80-90%', '85%', 'High', 'Score 4']
 
