@@ -28,6 +28,8 @@ def preprocessing(features: pd.DataFrame):
 
     features["time from third surgery processed"] = np.zeros(features["אבחנה-Surgery date1"].size)
 
+    print(features["time from first surgery processed"].value_counts())
+
     features.apply(process_dates, axis=1)
 
     features.apply(process_dates_2, axis=1)
@@ -52,6 +54,7 @@ def process_dates_2(data):
     if isinstance(data["אבחנה-Surgery date2"], str) and not (data["אבחנה-Diagnosis date"] is np.nan):
         if re.findall(r_date, data["אבחנה-Surgery date2"]):
             date = datetime.strptime(data["אבחנה-Surgery date2"], "%d/%m/%Y")
+            print((data["אבחנה-Diagnosis date"] - date).days)
             data["time from second surgery processed"] = np.max((data["אבחנה-Diagnosis date"] - date).days, 0)
             return
 

@@ -437,12 +437,8 @@ def part_3(args):
     # PCA::::
     pca = PCA(n_components=2)
     tran_pca = pca.fit_transform(df.astype(float))
-    fig = px.scatter_3d(x=tran_pca[:, 0], y=tran_pca[:, 1], z=tran_pca[:, 2], color=df['stage processed'])
+    fig = px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=df['stage processed'])
     fig.show()
-    km = KMeans()
-    pred = km.fit_predict(df.astype(float))
-    print(pred)
-    px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=df['stage processed']).show()
 
     cluster = KMeans(n_clusters=2)
     feat = cluster.fit_transform(df)
