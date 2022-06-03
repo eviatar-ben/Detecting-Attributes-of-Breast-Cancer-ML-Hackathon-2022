@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import utilities
 
 
 def handle_ordered_categorical_cols(df):
