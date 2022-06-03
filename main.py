@@ -11,7 +11,7 @@ Options:
 """
 import tqdm
 from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
-from sklearn.cluster import SpectralClustering
+from sklearn.cluster import SpectralClustering, KMeans
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, \
     BaggingClassifier
@@ -483,10 +483,15 @@ def part_3(args):
 
     df, num_imp, ord_imp, encoder = parse_features(df)
     # PCA::::
-    pca = PCA(n_components=3)
+    pca = PCA(n_components=2)
     tran_pca = pca.fit_transform(df.astype(float))
-    fig = px.scatter_3d(x=tran_pca[:, 0], y=tran_pca[:, 1], z=tran_pca[:, 2], color=df['stage processed'])
-    fig.show()
+    px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=df['stage processed']).show()
+
+    cluster = KMeans(n_clusters=2)
+    feat = cluster.fit_transform(df)
+    px.scatter(x=feat[:, 0], y=feat[:, 1], title="cluster").show()
+
+    px.scatter(df, x="time from first surgery processed", y="אבחנה-Age").show()
 
 
 # part1 pred --train-x=splited_datasets/X_train.csv --train-y=splited_datasets/y_train.csv --test-x=splited_datasets/X_test.csv --out=./new_val_pred.csv
