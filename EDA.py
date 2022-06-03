@@ -3,9 +3,9 @@ from sklearn.model_selection import train_test_split
 
 
 def eda():
-    labels1 = pd.read_csv("train.labels.1.csv")
+    labels1 = pd.read_csv("task 2/train.labels.1.csv")
 
-    full_fea = pd.read_csv("train.feats.csv").drop([" Form Name", "User Name"], axis=1).drop_duplicates()
+    full_fea = pd.read_csv("task 2/train.feats.csv").drop([" Form Name", "User Name"], axis=1).drop_duplicates()
 
     labels1 = labels1.loc[full_fea.index]
 

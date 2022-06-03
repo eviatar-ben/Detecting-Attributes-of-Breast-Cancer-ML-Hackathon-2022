@@ -9,192 +9,22 @@ Options:
   --help            # Show this message and exit
   --seed=SEED       [default: 0]
 """
-from pathlib import Path
-from typing import Iterable
+from statistics import LinearRegression
 
-import plotly.express as px
 from docopt import docopt
-from pandas import CategoricalDtype
 from sklearn.cluster import KMeans
 from sklearn.covariance import empirical_covariance
-import tqdm
-from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
-from sklearn.cluster import SpectralClustering, KMeans
 from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
-    RandomForestRegressor
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
-from sklearn.model_selection import KFold, cross_validate
+from sklearn.model_selection import cross_validate, KFold
+from sklearn.multioutput import ClassifierChain
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.tree import DecisionTreeClassifier
-from skmultilearn.problem_transform import LabelPowerset, ClassifierChain
+import plotly.express as px
 
 from explore_data import *
 from preprocessor import *
-
-
-def load_data_part_1(train_X_fn: Path, train_y_fn: Path):
-    features = pd.read_csv(train_X_fn, parse_dates=[
-        "אבחנה-Diagnosis date",
-        "אבחנה-Surgery date1",
-        "אבחנה-Surgery date2",
-        "אבחנה-Surgery date3",
-        "surgery before or after-Activity date"
-    ], infer_datetime_format=True, dayfirst=True)
-
-    labels = pd.read_csv(train_y_fn)
-    labels["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"].apply(eval)
-    full_data = features
-    full_data["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"]
-    # full_data = full_data.loc[:, ~full_data.columns.str.contains('^Unnamed')]
-    full_data.reset_index(inplace=True, drop=True)
-    return full_data
-
-
-def handle_numerical(df: pd.DataFrame, imputers=None) -> Iterable[SimpleImputer]:
-    df['אבחנה-Surgery sum'].mask(
-        (df['אבחנה-Surgery sum'].isna()),
-        (df['אבחנה-Surgery date1'].notna()) +
-        (df['אבחנה-Surgery date2'].notna()) +
-        (df['אבחנה-Surgery date3'].notna()),
-        inplace=True
-    )
-    df['אבחנה-Surgery sum'] = df['אבחנה-Surgery sum'].astype(float)
-
-    df['אבחנה-Nodes exam'].fillna(0, inplace=True)
-    df['אבחנה-Positive nodes'].mask(
-        (df["אבחנה-Positive nodes"].isna()), df['אבחנה-Nodes exam'],
-        inplace=True
-    )
-
-    median_imputer = SimpleImputer(strategy="median")
-    if imputers is not None:
-        median_imputer = imputers[0]
-
-    df["אבחנה-Age"] = median_imputer.fit_transform(df[["אבחנה-Age"]])
-
-    return [median_imputer]
-
-
-def handle_ordered_categories(df: pd.DataFrame, imputers=None) -> Iterable[SimpleImputer]:
-    base_stage_cat = CategoricalDtype(
-        categories=['c - Clinical', 'p - Pathological', 'r - Reccurent'],
-        ordered=True
-    )
-    df["אבחנה-Basic stage"] = df["אבחנה-Basic stage"].astype(base_stage_cat)
-    base_stage_imputer = SimpleImputer(strategy="most_frequent")
-    if imputers is not None:
-        base_stage_imputer = imputers[0]
-
-    df["אבחנה-Basic stage"] = base_stage_imputer.fit_transform(
-        df[["אבחנה-Basic stage"]]
-    )
-    df["Basic stage"] = df["אבחנה-Basic stage"].astype(base_stage_cat)
-    df["Basic stage"] = df["Basic stage"].cat.codes.fillna(-10)
-
-    hist_deg_cat = CategoricalDtype(
-        categories=[
-            'G1 - Well Differentiated',
-            'G2 - Modereately well differentiated',
-            'G3 - Poorly differentiated',
-            'G4 - Undifferentiated'],
-        ordered=True
-    )
-    df["אבחנה-Histopatological degree"] = df["אבחנה-Histopatological degree"].astype(hist_deg_cat)
-    hist_deg_imputer = SimpleImputer(strategy="most_frequent")
-    if imputers is not None:
-        hist_deg_imputer = imputers[1]
-
-    df["אבחנה-Histopatological degree"] = hist_deg_imputer.fit_transform(
-        df[["אבחנה-Histopatological degree"]]
-    )
-    df["Histopatological degree"] = df["אבחנה-Histopatological degree"].astype(hist_deg_cat)
-    df["Histopatological degree"] = df["Histopatological degree"].cat.codes.fillna(-10)
-
-    lym_pen_cat = CategoricalDtype(
-        categories=[
-            'L0 - No Evidence of invasion',
-            'LI - Evidence of invasion',
-            'L1 - Evidence of invasion of superficial Lym.',
-            'L2 - Evidence of invasion of depp Lym.'
-        ], ordered=True
-    )
-    df["אבחנה-Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
-    lym_pen_imputer = SimpleImputer(
-        strategy="constant",
-        fill_value=np.nan  # TODO: fill based on other columns
-    )
-    if imputers is not None:
-        lym_pen_imputer = imputers[2]
-
-    df["אבחנה-Lymphatic penetration"] = lym_pen_imputer.fit_transform(
-        df[["אבחנה-Lymphatic penetration"]]
-    )
-    df["Lymphatic penetration"] = df["אבחנה-Lymphatic penetration"].astype(lym_pen_cat)
-    df["Lymphatic penetration"] = df["Lymphatic penetration"].cat.codes.fillna(-10)
-
-    cat_columns = df.select_dtypes(['category']).columns
-    df[cat_columns] = df[cat_columns].apply(lambda x: x.cat.codes)
-
-    return [base_stage_imputer, lym_pen_imputer, hist_deg_imputer]
-
-
-def handle_side(df: pd.DataFrame):
-    df["Side_right"] = (df["אבחנה-Side"] == 'ימין') | (df["אבחנה-Side"] == 'דו צדדי')
-    df["Side_left"] = (df["אבחנה-Side"] == 'שמאל') | (df["אבחנה-Side"] == 'דו צדדי')
-
-
-def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
-    num_imp = handle_numerical(df, num_imp)
-    # df = handle_dates_features(df)
-    df, encoder = handle_categorical_cols(df, encoder)
-    df = handle_ivi(df)
-    df = handle_ki67(df)
-    preprocessing(df)
-    ord_imp = handle_ordered_categories(df, ord_imp)
-
-    handle_side(df)
-    drop_cols(df, ['אבחנה-Histological diagnosis',
-                   'אבחנה-Ivi -Lymphovascular invasion',
-                   'אבחנה-Her2',
-                   'אבחנה-N -lymph nodes mark (TNM)',
-                   'אבחנה-Side',
-                   'אבחנה-Stage',
-                   'אבחנה-Surgery name1',  # TODO
-                   'אבחנה-Surgery name2',  # TODO
-                   'אבחנה-Surgery name3',  # TODO
-                   'אבחנה-T -Tumor mark (TNM)',
-                   "אבחנה-M -metastases mark (TNM)",
-                   'אבחנה-Tumor depth',  # TODO
-                   'אבחנה-Tumor width',  # TODO
-                   'אבחנה-er',
-                   'אבחנה-pr',
-                   'id-hushed_internalpatientid',
-                   'surgery before or after-Actual activity',  # TODO
-                   'אבחנה-Surgery date1',
-                   'אבחנה-Surgery date2',
-                   'אבחנה-Surgery date3',
-                   'surgery before or after-Activity date',
-                   'אבחנה-Diagnosis date',
-                   "אבחנה-Basic stage",
-                   "אבחנה-Histopatological degree",
-                   "אבחנה-Lymphatic penetration",
-                   ' Hospital',
-                   'אבחנה-Margin Type',
-                   ' Form Name',
-                   'User Name'
-                   ])
-
-    return df, num_imp, ord_imp, encoder
-
-
-def multi():
-    import MultiLabelClassifier
-    # X_train = np.array(pd.DataFrame.to_numpy(X_train), dtype=float)
-    return MultiLabelClassifier.get_models()
 
 
 def part_1(args):
@@ -372,6 +202,7 @@ def part_2(args):
         features, num_imp, ord_imp, encoder = parse_features(features, num_imp,
                                                              ord_imp, encoder)
         pred = model.predict(features)
+        pred = np.maximum(pred, 0)
         out_path = Path(args["--out"])
         combined = pd.DataFrame(pred, columns=['אבחנה-Tumor size'])
         combined.to_csv(path_or_buf=out_path, index=False)
@@ -405,6 +236,8 @@ def part_2(args):
 
         pred = model.predict(df)
 
+        pred = np.maximum(pred, 0)
+
         mcm = confusion_matrix(labels.to_numpy().T[0], pred)
         print(mcm)
 
@@ -426,6 +259,7 @@ def part_2(args):
         print("neg MSE train:")
         print(np.mean(scores["train_score"]))
 
+
 def part_3(args):
     train_X_fn = Path(args["--train-x"])
     df = pd.read_csv(train_X_fn, parse_dates=[
@@ -440,23 +274,23 @@ def part_3(args):
     # PCA::::
     pca = PCA(n_components=3)
     tran_pca = pca.fit_transform(df.astype(float))
-    fig = px.scatter_3d(x=tran_pca[:, 0], y=tran_pca[:, 1], z=tran_pca[:, 2], color=df['stage processed'])
+    fig = px.scatter_3d(x=tran_pca[:, 0], y=tran_pca[:, 1], z=tran_pca[:, 2],
+                        color=df['stage processed'], title="PCA components analysis over cancer stage")
     fig.show()
 
     cluster = KMeans(n_clusters=3)
     feat = cluster.fit_transform(df)
-    px.scatter_3d(x=feat[:, 0], y=feat[:, 1], z=feat[:, 2], title="cluster").show()
+    px.scatter_3d(x=feat[:, 0], y=feat[:, 1], z=feat[:, 2], title="KMeans clustering with age as color",
+                  color=df['אבחנה-Age']).show()
 
-    px.scatter(df, x="time from first surgery processed", y="אבחנה-Age").show()
-
-    fig = px.imshow(empirical_covariance(df.astype(float)))
+    fig = px.imshow(empirical_covariance(df.astype(float)), title="Feature covariance")
     fig.show()
 
 
 
-# part1 pred --train-x=train.feats.csv --train-y=train.labels.0.csv --test-x=test.feats.csv --out=./prediction_part_1.csv
+# part1 pred --train-x=train.feats.csv --train-y=train.labels.0.csv --test-x=test.feats.csv --out=./part1/predictions.csv
 # part1 --cv=5 --train-x=train.feats.csv --train-y=train.labels.0.csv --seed=800835
-# part2 pred --train-x=train.feats.csv --train-y=train.labels.1.csv --test-x=test.feats.csv --out=./prediction_part_2.csv
+# part2 pred --train-x=train.feats.csv --train-y=train.labels.1.csv --test-x=test.feats.csv --out=./part2/predictions.csv
 # part2 --cv=8 --train-x=train.feats.csv --train-y=train.labels.1.csv --seed=800835
 # part3 --train-x=train.feats.csv
 if __name__ == '__main__':
