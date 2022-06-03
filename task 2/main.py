@@ -59,7 +59,7 @@ def part_1(args):
         df["אבחנה-Location of distal metastases"])
     transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
 
-    model = ClassifierChain(DecisionTreeClassifier())
+    model = ClassifierChain(DecisionTreeClassifier(), cv=5)
 
     # Make prediction:
     if args['pred']:
@@ -77,7 +77,10 @@ def part_1(args):
 
         features, num_imp, ord_imp, encoder = parse_features(features, num_imp,
                                                              ord_imp, encoder)
-        pred = model.predict(features)
+        pred_prob = model.predict_proba(features)
+        pred_prob * (pred_prob >= np.sort(pred_prob, axis=1)[:, [-3]]).astype(float)
+        pred = (pred_prob >= 0.5)
+
         out_path = Path(args["--out"])
         combined = pd.DataFrame(
             {"אבחנה-Location of distal metastases":
@@ -109,9 +112,10 @@ def part_1(args):
                            axis=1).drop_duplicates()
         df = df.loc[features.index]
 
-        pred = model.predict(
-            df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float))
-
+        pred_prob = model.predict_proba(df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float))
+        pred_prob * (pred_prob >= np.sort(pred_prob, axis=1)[:, [-3]]).astype(
+            float)
+        pred = (pred_prob >= 0.5)
         transformed_y = mlb.transform(
             df["אבחנה-Location of distal metastases"])
         transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
