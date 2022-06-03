@@ -290,12 +290,16 @@ def part_3(args):
     fig = px.imshow(empirical_covariance(df.astype(float)), title="Feature covariance")
     fig.show()
 
+    px.scatter(df, x='אבחנה-Age', y='time from first surgery processed',
+               title="Appointment time after surgery as factor of age").show()
+
+
 
 
 # part1 pred --train-x=train.feats.csv --train-y=train.labels.0.csv --test-x=test.feats.csv --out=./part1/predictions.csv
-# part1 --cv=5 --train-x=train.feats.csv --train-y=train.labels.0.csv --seed=800835
 # part2 pred --train-x=train.feats.csv --train-y=train.labels.1.csv --test-x=test.feats.csv --out=./part2/predictions.csv
-# part2 --cv=8 --train-x=train.feats.csv --train-y=train.labels.1.csv --seed=800835
+# part1 --cv=5 --train-x=train.feats.csv --train-y=train.labels.0.csv
+# part2 --cv=5 --train-x=train.feats.csv --train-y=train.labels.1.csv
 # part3 --train-x=train.feats.csv
 if __name__ == '__main__':
     args = docopt(__doc__)
