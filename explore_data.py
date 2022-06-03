@@ -46,7 +46,8 @@ def process_dates(data):
     if isinstance(data["אבחנה-Surgery date1"], str) and not (data["אבחנה-Diagnosis date"] is np.nan):
         if re.findall(r_date, data["אבחנה-Surgery date1"]):
             date = datetime.strptime(data["אבחנה-Surgery date1"], "%d/%m/%Y")
-            return np.max((data["אבחנה-Diagnosis date"] - date).days, 0)
+            # print((data["אבחנה-Diagnosis date"] - date).days)
+            return np.maximum((data["אבחנה-Diagnosis date"] - date).days, 0)
 
     return 0
 
@@ -55,7 +56,7 @@ def process_dates_2(data):
     if isinstance(data["אבחנה-Surgery date2"], str) and not (data["אבחנה-Diagnosis date"] is np.nan):
         if re.findall(r_date, data["אבחנה-Surgery date2"]):
             date = datetime.strptime(data["אבחנה-Surgery date2"], "%d/%m/%Y")
-            return np.max((data["אבחנה-Diagnosis date"] - date).days, 0)
+            return np.maximum((data["אבחנה-Diagnosis date"] - date).days, 0)
 
     return 0
 
@@ -64,7 +65,7 @@ def process_dates_3(data):
     if isinstance(data["אבחנה-Surgery date3"], str) and not (data["אבחנה-Diagnosis date"] is np.nan):
         if re.findall(r_date, data["אבחנה-Surgery date3"]):
             date = datetime.strptime(data["אבחנה-Surgery date3"], "%d/%m/%Y")
-            return np.max((data["אבחנה-Diagnosis date"] - date).days, 0)
+            return np.maximum((data["אבחנה-Diagnosis date"] - date).days, 0)
 
     return 0
 
