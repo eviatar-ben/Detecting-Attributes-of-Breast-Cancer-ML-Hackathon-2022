@@ -7,7 +7,7 @@
 
 Options:
   --help            # Show this message and exit
-  --seed=SEED       # [default: 0]
+  --seed=SEED       [default: 0]
 """
 from pathlib import Path
 from typing import Iterable
@@ -16,6 +16,7 @@ import plotly.express as px
 from docopt import docopt
 from pandas import CategoricalDtype
 from sklearn.cluster import KMeans
+from sklearn.covariance import empirical_covariance
 import tqdm
 from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
 from sklearn.cluster import SpectralClustering, KMeans
@@ -182,7 +183,9 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    "אבחנה-Histopatological degree",
                    "אבחנה-Lymphatic penetration",
                    ' Hospital',
-                   'אבחנה-Margin Type'
+                   'אבחנה-Margin Type',
+                   ' Form Name',
+                   'User Name'
                    ])
 
     return df, num_imp, ord_imp, encoder
@@ -446,10 +449,16 @@ def part_3(args):
 
     px.scatter(df, x="time from first surgery processed", y="אבחנה-Age").show()
 
+    fig = px.imshow(empirical_covariance(df.astype(float)))
+    fig.show()
 
-# part1 pred --train-x=splited_datasets/X_train.csv --train-y=splited_datasets/y_train.csv --test-x=splited_datasets/X_test.csv --out=./new_val_pred.csv
-# part1 --cv=5 --train-x=splited_datasets/X_train_more.csv --train-y=splited_datasets/y_train_more.csv
-# part3 --train-x=splited_datasets/X_train_more.csv
+
+
+# part1 pred --train-x=train.feats.csv --train-y=train.labels.0.csv --test-x=test.feats.csv --out=./prediction_part_1.csv
+# part1 --cv=5 --train-x=train.feats.csv --train-y=train.labels.0.csv --seed=800835
+# part2 pred --train-x=train.feats.csv --train-y=train.labels.1.csv --test-x=test.feats.csv --out=./prediction_part_2.csv
+# part2 --cv=8 --train-x=train.feats.csv --train-y=train.labels.1.csv --seed=800835
+# part3 --train-x=train.feats.csv
 if __name__ == '__main__':
     args = docopt(__doc__)
     print(args)
