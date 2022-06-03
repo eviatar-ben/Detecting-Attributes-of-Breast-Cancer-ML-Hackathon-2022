@@ -20,7 +20,7 @@ from sklearn.covariance import empirical_covariance
 import tqdm
 from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
 from sklearn.cluster import SpectralClustering, KMeans
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, KernelPCA
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
     RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
