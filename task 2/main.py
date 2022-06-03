@@ -9,13 +9,13 @@ Options:
   --help            # Show this message and exit
   --seed=SEED       [default: 0]
 """
-from statistics import LinearRegression
 
 from docopt import docopt
 from sklearn.cluster import KMeans
 from sklearn.covariance import empirical_covariance
 from sklearn.decomposition import PCA
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
 from sklearn.model_selection import cross_validate, KFold
 from sklearn.multioutput import ClassifierChain
