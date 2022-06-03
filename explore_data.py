@@ -2,9 +2,11 @@ import pandas as pd
 import re
 import numpy as np
 from datetime import datetime
+from sklearn.preprocessing import StandardScaler
 
 
 def preprocessing(data: pd.DataFrame):
+    scaler = StandardScaler(copy=False, with_mean=False)
     features = data
 
     features["Her2_processed"] = features["אבחנה-Her2"].apply(processing_her2)
@@ -30,11 +32,14 @@ def preprocessing(data: pd.DataFrame):
 
     features["time from third surgery processed"] = np.zeros(features["אבחנה-Surgery date1"].size)
 
-    features["time from first surgery processed"] = features.apply(process_dates, axis=1)
+    features["time from first surgery processed"] = scaler.fit_transform(
+        features.apply(process_dates, axis=1).to_numpy().reshape(-1, 1))
 
-    features["time from second surgery processed"] = features.apply(process_dates_2, axis=1)
+    features["time from second surgery processed"] = scaler.fit_transform(
+        features.apply(process_dates_2, axis=1).to_numpy().reshape(-1, 1))
 
-    features["time from third surgery processed"] = features.apply(process_dates_3, axis=1)
+    features["time from third surgery processed"] = scaler.fit_transform(
+        features.apply(process_dates_3, axis=1).to_numpy().reshape(-1, 1))
 
     data.update(features)
 
