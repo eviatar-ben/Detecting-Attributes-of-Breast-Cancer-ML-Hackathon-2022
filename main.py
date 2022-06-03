@@ -438,14 +438,14 @@ def part_3(args):
 
     df, num_imp, ord_imp, encoder = parse_features(df)
     # PCA::::
-    pca = PCA(n_components=2)
+    pca = PCA(n_components=3)
     tran_pca = pca.fit_transform(df.astype(float))
-    fig = px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=df['stage processed'])
+    fig = px.scatter_3d(x=tran_pca[:, 0], y=tran_pca[:, 1], z=tran_pca[:, 2], color=df['stage processed'])
     fig.show()
 
-    cluster = KMeans(n_clusters=2)
+    cluster = KMeans(n_clusters=3)
     feat = cluster.fit_transform(df)
-    px.scatter(x=feat[:, 0], y=feat[:, 1], title="cluster").show()
+    px.scatter_3d(x=feat[:, 0], y=feat[:, 1], z=feat[:, 2], title="cluster").show()
 
     px.scatter(df, x="time from first surgery processed", y="אבחנה-Age").show()
 

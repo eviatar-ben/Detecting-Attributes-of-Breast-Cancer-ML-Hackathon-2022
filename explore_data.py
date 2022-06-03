@@ -30,11 +30,11 @@ def preprocessing(data: pd.DataFrame):
 
     features["time from third surgery processed"] = np.zeros(features["אבחנה-Surgery date1"].size)
 
-    features = features.apply(process_dates, axis=1)
+    features.apply(process_dates, axis=1)
 
-    features = features.apply(process_dates_2, axis=1)
+    features.apply(process_dates_2, axis=1)
 
-    features = features.apply(process_dates_3, axis=1)
+    features.apply(process_dates_3, axis=1)
 
     data.update(features)
 
