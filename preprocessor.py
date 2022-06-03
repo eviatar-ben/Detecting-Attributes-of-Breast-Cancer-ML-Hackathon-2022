@@ -28,7 +28,8 @@ def handle_categorical_cols(df, encoder=None):
 def drop_cols(df, cols):
     # User name
     for col_name in cols:
-        df.drop(col_name, axis=1, inplace=True)
+        if col_name in df.columns:
+            df.drop(col_name, axis=1, inplace=True)
 
 
 def handle_dates_features(df):
