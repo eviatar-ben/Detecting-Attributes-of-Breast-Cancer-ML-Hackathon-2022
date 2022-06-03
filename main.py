@@ -6,39 +6,36 @@
     <file-name> part3 --train-x=TRAIN_X [options]
 
 Options:
-  --help                           Show this message and exit
-  --seed=SEED                       [default: 0]
+  --help            # Show this message and exit
+  --seed=SEED       # [default: 0]
 """
+from pathlib import Path
+from typing import Iterable
+
+import plotly.express as px
+from docopt import docopt
+from pandas import CategoricalDtype
+from sklearn.cluster import KMeans
 import tqdm
 from pandas import CategoricalDtype  # TODO: pd.CategoricalDtype instead
 from sklearn.cluster import SpectralClustering, KMeans
 from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, \
-    BaggingClassifier
-from sklearn.linear_model import LinearRegression, RidgeClassifier, \
-    RidgeClassifierCV
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
+    RandomForestRegressor
+from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.impute import SimpleImputer
-from docopt import docopt
-from pathlib import Path
-import logging
-import pandas as pd
-from typing import Tuple, Iterable
-import numpy as np
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
-from sklearn.model_selection import KFold, cross_validate, GridSearchCV
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import OrdinalEncoder, MultiLabelBinarizer
+from sklearn.model_selection import KFold, cross_validate
+from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.tree import DecisionTreeClassifier
 from skmultilearn.problem_transform import LabelPowerset, ClassifierChain
 
-from MultiLabelClassifier import build_model
-from preprocessor import *
 from explore_data import *
-import plotly.graph_objects as go
-import plotly.express as px
+from preprocessor import *
 
 
-def load_data(train_X_fn: Path, train_y_fn: Path):
+def load_data_part_1(train_X_fn: Path, train_y_fn: Path):
     features = pd.read_csv(train_X_fn, parse_dates=[
         "אבחנה-Diagnosis date",
         "אבחנה-Surgery date1",
@@ -51,29 +48,20 @@ def load_data(train_X_fn: Path, train_y_fn: Path):
     labels["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"].apply(eval)
     full_data = features
     full_data["אבחנה-Location of distal metastases"] = labels["אבחנה-Location of distal metastases"]
-    full_data = full_data.loc[:, ~full_data.columns.str.contains('^Unnamed')]
+    # full_data = full_data.loc[:, ~full_data.columns.str.contains('^Unnamed')]
     full_data.reset_index(inplace=True, drop=True)
     return full_data
 
 
 def handle_numerical(df: pd.DataFrame, imputers=None) -> Iterable[SimpleImputer]:
-    numerical_categories = [
-        "אבחנה-Tumor depth",  # TODO: Drop?
-        "אבחנה-Tumor width",  # TODO: Drop?
-        "אבחנה-Surgery sum",  # TODO: fill using dates?
-        "אבחנה-Positive nodes",  # todo:
-        "אבחנה-Nodes exam",  # TODO:
-        "אבחנה-Age",
-    ]
-
-    # df['אבחנה-Surgery sum'].mask(
-    #     (df['אבחנה-Surgery sum'].isna()),
-    #     (df['אבחנה-Surgery date1'].notna()) +
-    #     (df['אבחנה-Surgery date2'].notna()) +
-    #     (df['אבחנה-Surgery date3'].notna()),
-    #     inplace=True
-    # )
-    df['אבחנה-Surgery sum'] = df['אבחנה-Surgery sum'].fillna(0).astype(float)
+    df['אבחנה-Surgery sum'].mask(
+        (df['אבחנה-Surgery sum'].isna()),
+        (df['אבחנה-Surgery date1'].notna()) +
+        (df['אבחנה-Surgery date2'].notna()) +
+        (df['אבחנה-Surgery date3'].notna()),
+        inplace=True
+    )
+    df['אבחנה-Surgery sum'] = df['אבחנה-Surgery sum'].astype(float)
 
     df['אבחנה-Nodes exam'].fillna(0, inplace=True)
     df['אבחנה-Positive nodes'].mask(
@@ -86,17 +74,11 @@ def handle_numerical(df: pd.DataFrame, imputers=None) -> Iterable[SimpleImputer]
         median_imputer = imputers[0]
 
     df["אבחנה-Age"] = median_imputer.fit_transform(df[["אבחנה-Age"]])
-    # df["אבחנה-Age"] = median_imputer.transform(df["אבחנה-Age"])
+
     return [median_imputer]
 
 
 def handle_ordered_categories(df: pd.DataFrame, imputers=None) -> Iterable[SimpleImputer]:
-    ordered_categories = [
-        "אבחנה-Basic stage",  # TODO: switch to unordered - ignore Null?
-        "אבחנה-Histopatological degree",  # TODO: Gx and null in diff columns?
-        "אבחנה-Lymphatic penetration",  # TODO: LI vs L1? Null?
-        "אבחנה-M -metastases mark (TNM)",  # TODO: differentiate between types of M1?
-    ]
     base_stage_cat = CategoricalDtype(
         categories=['c - Clinical', 'p - Pathological', 'r - Reccurent'],
         ordered=True
@@ -165,7 +147,6 @@ def handle_side(df: pd.DataFrame):
 
 
 def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
-    a = num_imp is None
     num_imp = handle_numerical(df, num_imp)
     # df = handle_dates_features(df)
     df, encoder = handle_categorical_cols(df, encoder)
@@ -174,11 +155,9 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
     preprocessing(df)
     ord_imp = handle_ordered_categories(df, ord_imp)
 
-    # handle_side(df)
+    handle_side(df)
     drop_cols(df, ['אבחנה-Histological diagnosis',
                    'אבחנה-Ivi -Lymphovascular invasion',
-                   # 'אבחנה-KI67 protein',
-                   # 'User Name',
                    'אבחנה-Her2',
                    'אבחנה-N -lymph nodes mark (TNM)',
                    'אבחנה-Side',
@@ -194,13 +173,11 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    'אבחנה-pr',
                    'id-hushed_internalpatientid',
                    'surgery before or after-Actual activity',  # TODO
-                   # TODO: retry dates with manual parse for Unknowns?
                    'אבחנה-Surgery date1',
                    'אבחנה-Surgery date2',
                    'אבחנה-Surgery date3',
                    'surgery before or after-Activity date',
                    'אבחנה-Diagnosis date',
-                   # ' Form Name',
                    "אבחנה-Basic stage",
                    "אבחנה-Histopatological degree",
                    "אבחנה-Lymphatic penetration",
@@ -208,39 +185,6 @@ def parse_features(df: pd.DataFrame, num_imp=None, ord_imp=None, encoder=None):
                    'אבחנה-Margin Type'
                    ])
 
-    # if a:
-    #     df = df[[
-    #         "אבחנה-Location of distal metastases",
-    #         "אבחנה-Age",
-    #         'neg_ivi',
-    #         'pos_ivi',
-    #         'Her2_processed',
-    #         'er_processed',
-    #         'pr_processed',
-    #         'lymph nodes mark processed',
-    #         'metastases mark processed',
-    #         'Tumor mark processed',
-    #         'time from first surgery processed',
-    #         'time from second surgery processed',
-    #         'time from third surgery processed',
-    #         'אבחנה-Surgery sum'
-    #     ]]
-    # else:
-    #     df = df[[
-    #         "אבחנה-Age",
-    #         'neg_ivi',
-    #         'pos_ivi',
-    #         'Her2_processed',
-    #         'er_processed',
-    #         'pr_processed',
-    #         'lymph nodes mark processed',
-    #         'metastases mark processed',
-    #         'Tumor mark processed',
-    #         'time from first surgery processed',
-    #         'time from second surgery processed',
-    #         'time from third surgery processed',
-    #         'אבחנה-Surgery sum'
-    #     ]]
     return df, num_imp, ord_imp, encoder
 
 
@@ -254,7 +198,7 @@ def part_1(args):
     # Parse train:
     train_X_fn = Path(args["--train-x"])
     train_y_fn = Path(args["--train-y"])
-    df = load_data(train_X_fn, train_y_fn)
+    df = load_data_part_1(train_X_fn, train_y_fn)
 
     df, num_imp, ord_imp, encoder = parse_features(df)
     features = df.drop(["אבחנה-Location of distal metastases"], axis=1).drop_duplicates()
@@ -265,15 +209,27 @@ def part_1(args):
         parsed_fn = Path(args['--parsed'])
         df.to_csv(parsed_fn, index=False)
 
-    mlb = MultiLabelBinarizer()
+    mlb = MultiLabelBinarizer(classes=[
+        'PUL - Pulmonary',
+        'BON - Bones',
+        'SKI - Skin',
+        'LYM - Lymph nodes',
+        'BRA - Brain',
+        'HEP - Hepatic',
+        'PER - Peritoneum',
+        'PLE - Pleura',
+        'OTH - Other',
+        'ADR - Adrenals',
+        'MAR - Bone Marrow',
+    ])
     transformed_y = mlb.fit_transform(
         df["אבחנה-Location of distal metastases"])
     transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
-    transformed_y_df = transformed_y_df[['ADR - Adrenals']]
-    # df = pd.concat([df, transformed_y_df], axis=1)
+
+    model = ClassifierChain(DecisionTreeClassifier())
+
     # Make prediction:
     if args['pred']:
-        model = LabelPowerset(RandomForestClassifier(ccp_alpha=0.00001))
         model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float),
                   transformed_y_df)
 
@@ -291,14 +247,13 @@ def part_1(args):
         pred = model.predict(features)
         out_path = Path(args["--out"])
         combined = pd.DataFrame(
-            {"אבחנה-Location of distal metastases": mlb.inverse_transform(
-                pred)}
+            {"אבחנה-Location of distal metastases":
+                 mlb.inverse_transform(pred)}
         )
         combined.to_csv(path_or_buf=out_path, index=False)
 
     # Evaluate test:
     if args['baseline'] or args['test']:
-        model = None
         if args['baseline']:
             baseline = DecisionTreeClassifier(max_depth=2)
             baseline.fit(
@@ -306,14 +261,13 @@ def part_1(args):
                 transformed_y_df)
             model = baseline
         else:
-            model = LabelPowerset(DecisionTreeClassifier())
             model.fit(df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float),
                       transformed_y_df)
 
         train_X_fn = Path(args["--test-x"])
         train_y_fn = Path(args["--test-y"])
 
-        df = load_data(train_X_fn, train_y_fn)
+        df = load_data_part_1(train_X_fn, train_y_fn)
 
         df, num_imp, ord_imp, encoder = parse_features(df, num_imp, ord_imp,
                                                        encoder)
@@ -323,14 +277,14 @@ def part_1(args):
         df = df.loc[features.index]
 
         pred = model.predict(
-            df.drop(["אבחנה-Location of distal metastases"], axis=1))
+            df.drop(["אבחנה-Location of distal metastases"], axis=1).astype(float))
 
         transformed_y = mlb.transform(
             df["אבחנה-Location of distal metastases"])
         transformed_y_df = pd.DataFrame(transformed_y, columns=mlb.classes_)
 
         mcm = multilabel_confusion_matrix(transformed_y_df, pred)
-
+        print(mcm)
         out_path = Path(args["--out"])
         combined = pd.DataFrame({
             "אבחנה-Location of distal metastases": mlb.inverse_transform(
@@ -344,16 +298,14 @@ def part_1(args):
         splits = int(args["--cv"])
 
         models = [
-            # DecisionTreeClassifier(max_depth=18, class_weight="balanced"),
-            # LabelPowerset(DecisionTreeClassifier(max_depth=18, class_weight="balanced")),
-            # LabelPowerset(DecisionTreeClassifier()),
-            # ClassifierChain(DecisionTreeClassifier(max_depth=18, class_weight="balanced")),
+            ClassifierChain(DecisionTreeClassifier()),
+            ClassifierChain(ExtraTreesClassifier()),
+            ClassifierChain(RandomForestClassifier()),
             ClassifierChain(RandomForestClassifier(class_weight="balanced_subsample")),
+            ClassifierChain(DecisionTreeClassifier(class_weight="balanced")),
             RandomForestClassifier(class_weight="balanced"),
             RandomForestClassifier(class_weight="balanced_subsample"),
             RandomForestClassifier(),
-            # RidgeClassifier(),
-            # LabelPowerset(RandomForestClassifier())
         ]
         # models += [i for i in multi()]
         for model in models:
@@ -389,18 +341,21 @@ def part_2(args):
     ], infer_datetime_format=True, dayfirst=True)
 
     df, num_imp, ord_imp, encoder = parse_features(df)
+    features = df.drop_duplicates()
+    df = df.loc[features.index]
+    labels = labels.loc[df.index]
 
-    # Save trained model:  TODO: load trained model - requires saving the dtypes?
+    # Save trained model:
     if args['--parsed'] is not None:
         df['אבחנה-Tumor size'] = labels['אבחנה-Tumor size']
         parsed_fn = Path(args['--parsed'])
         df.to_csv(parsed_fn, index=False)
         df.drop(['אבחנה-Tumor size'], axis=1, inplace=True)
 
+    model = RandomForestRegressor(max_features=0.75, max_samples=0.75)
     # Make prediction:
     if args['pred']:
-        model = LinearRegression()
-        model.fit(df, labels)
+        model.fit(df, labels.to_numpy().T[0])
 
         train_X_fn = Path(args["--test-x"])
         features = pd.read_csv(train_X_fn, parse_dates=[
@@ -420,13 +375,11 @@ def part_2(args):
 
     # Test:
     if args['baseline'] or args['test']:
-        model = None
         if args['baseline']:
             model = LinearRegression()
-            model.fit(df, labels)
+            model.fit(df, labels.to_numpy().T[0])
         else:
-            model = LinearRegression()
-            model.fit(df, labels)
+            model.fit(df, labels.to_numpy().T[0])
 
         train_X_fn = Path(args["--test-x"])
         train_y_fn = Path(args["--test-y"])
@@ -443,9 +396,14 @@ def part_2(args):
 
         df, num_imp, ord_imp, encoder = parse_features(df, num_imp, ord_imp,
                                                        encoder)
+        features = df.drop_duplicates()
+        df = df.loc[features.index]
+        labels = labels.loc[df.index]
+
         pred = model.predict(df)
 
-        mcm = confusion_matrix(labels, pred)
+        mcm = confusion_matrix(labels.to_numpy().T[0], pred)
+        print(mcm)
 
         out_path = Path(args["--out"])
         combined = pd.DataFrame(pred, columns=['אבחנה-Tumor size'])
@@ -454,22 +412,16 @@ def part_2(args):
     # Test using cross validation
     if args["--cv"] is not None:
         splits = int(args["--cv"])
-        model = LinearRegression()
-        scores = cross_validate(model, df, labels, cv=splits,
-                                scoring=['f1_micro', 'f1_macro'],
+        scores = cross_validate(model, df, labels.to_numpy().T[0], cv=splits,
+                                scoring='neg_mean_squared_error',
                                 return_train_score=True,
                                 return_estimator=True)
-        print("## f1_macro ##")
-        print(np.mean(scores["test_f1_macro"]))
-        print(scores["test_f1_macro"])
-        print(np.mean(scores["train_f1_macro"]))
-        print(scores["train_f1_macro"])
-        print("## f1_micro ##")
-        print(np.mean(scores["test_f1_micro"]))
-        print(scores["test_f1_micro"])
-        print(np.mean(scores["rain_f1_micro"]))
-        print(scores["train_f1_micro"])
-
+        print(model)
+        print("neg MSE test:")
+        print(np.mean(scores["test_score"]))
+        print(scores["test_score"])
+        print("neg MSE train:")
+        print(np.mean(scores["train_score"]))
 
 def part_3(args):
     train_X_fn = Path(args["--train-x"])
@@ -485,6 +437,11 @@ def part_3(args):
     # PCA::::
     pca = PCA(n_components=2)
     tran_pca = pca.fit_transform(df.astype(float))
+    fig = px.scatter_3d(x=tran_pca[:, 0], y=tran_pca[:, 1], z=tran_pca[:, 2], color=df['stage processed'])
+    fig.show()
+    km = KMeans()
+    pred = km.fit_predict(df.astype(float))
+    print(pred)
     px.scatter(x=tran_pca[:, 0], y=tran_pca[:, 1], color=df['stage processed']).show()
 
     cluster = KMeans(n_clusters=2)
